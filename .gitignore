@@ -1,0 +1,8 @@
+.env
+.idea/
+.vs/
+.vscode/
+MyApp_backup.txt
+__pycache__/
+moje_readme.txt
+training/
