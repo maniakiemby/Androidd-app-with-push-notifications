@@ -6,3 +6,4 @@ MyApp_backup.txt
 __pycache__/
 moje_readme.txt
 training/
+database.db
