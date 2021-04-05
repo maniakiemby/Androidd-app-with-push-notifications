@@ -1,4 +1,29 @@
-<ToDoApp>:
+<WrapButton>:
+    halign: "left"
+    valign: "middle"
+    size_hint_min_y: 200
+    text_size: self.width - 15, None
+    height: self.texture_size[1]
+
+<ScrollButtons>:
 
 
-<MainWindow>
+<ToDoTasks>:
+
+
+<MainWindow>:
+    task: task
+
+    FloatLayout:
+        Label:
+            id: task
+
+
+        Button:
+            pos_hint: {"x": 0.0, "top": 1}
+            size_hint: 0.1, 0.1
+            text: "Cofnij"
+            on_release:
+                app.root.current = "tasks"
+                root.manager.transition.direction = "right"
+
