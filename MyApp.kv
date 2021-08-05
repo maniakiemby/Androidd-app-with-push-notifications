@@ -1,3 +1,4 @@
+
 <WrapButton>:
     halign: "left"
     valign: "middle"
@@ -5,25 +6,84 @@
     text_size: self.width - 15, None
     height: self.texture_size[1]
 
-<ScrollButtons>:
+<MainTasksScrollVIew>:
+    background_normal: ''
+    size_hint: (.5, None)
+    # size: (root.Window.width, root.Window.height - 50)
+
+<GridButtons>:
+    background_normal: ''
+    cols: 2
+    spacing: 2
+    size_hint_y: None
+    # bind(minimum_height=self.setter('height'))
 
 
 <ToDoTasks>:
 
-
 <MainWindow>:
-    task: task
+    task_content: task_content
+    task_date_of_performance: task_date_of_performance
 
     FloatLayout:
-        Label:
-            id: task
-
+        rows: 3
 
         Button:
+            text: 'back'
+            # on_release: app.root.current = 'tasks'
+            background_normal: ''
+            color: 'grey'
+            size_hint: (0.10, 0.10)
             pos_hint: {"x": 0.0, "top": 1}
-            size_hint: 0.1, 0.1
-            text: "Cofnij"
+            size_hint_min_y: 50
+            size_hint_max_y: 100
+            size_hint_min_x: 80
+            size_hint_max_x: 100
             on_release:
-                app.root.current = "tasks"
-                root.manager.transition.direction = "right"
+                root.button_back()
+                # root.manager.transition.direction = "left"
+
+        GridLayout:
+            rows: 2
+            cols: 2
+            pos_hint: {"x": 0, "top": .8}
+
+            Button:
+                text: 'Wykonane'
+                # id: execute_task
+                background_normal: ''
+                color: 'grey'
+                size_hint: 0.2, 0
+                size_hint_min_x: 80
+                size_hint_max_x: 80
+                size_hint_max_y: 100
+                pos_hint: {"x": 0, "top": 1}
+                on_release:
+                    root.execute()
+                    root.button_back()
+                    root.manager.transition.direction = "right"
+
+
+            Label:
+                id: task_content
+                background_normal: ''
+                color: 'grey'
+                text_size: self.width - 35, None
+                size_hint: 1, 1
+
+
+        GridLayout:
+            cols: 2
+            pos_hint: {"x": 0, "top": .2}
+            size_hint: 1, .2
+
+            Button:
+                id: task_date_of_performance
+                background_normal: ''
+                color: 'grey'
+                pos_hint:{"x": 0.2, "top": 1}
+                size_hint:0.8, 0.2
+
+            Button:
+                text: 'coś jeszcze'
 
