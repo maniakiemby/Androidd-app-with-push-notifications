@@ -7,3 +7,8 @@ __pycache__/
 moje_readme.txt
 training/
 database.db
+automation.py
+venv_win
+venv_lin
+buildozer.spec
+
