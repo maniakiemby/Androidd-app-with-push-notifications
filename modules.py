@@ -45,8 +45,6 @@ class DatePicker(GridLayout):  # data musi być w formacie '2021-11-26' i obiekt
                                               )
         self.add_widget(self.calendar_layout)
 
-    # TODO A MOŻE SPRÓBOWAĆ STWORZYĆ WZAJEMNE POWIĄZANIA,
-    #  TAK ŻEBY TE KLASY DZIEDZICZYŁY PO SOBIE ŁAŃCUCHEM
     def refresh(self):
         self.clear_widgets()
         self.__init__(self.app.selected_date)
