@@ -11,4 +11,5 @@ automation.py
 venv_win
 venv_lin
 buildozer.spec
+tests
 

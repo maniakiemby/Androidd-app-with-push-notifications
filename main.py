@@ -1,14 +1,17 @@
 from os import getenv
 import re
-from functools import partial
-import time
+# from functools import partial
+from datetime import datetime, date, time
+# from collections import namedtuple
+from typing import Union
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import kivy
 
 # from kivy.interactive import InteractiveLauncher
 from kivy.app import App
 from kivy.lang import Builder
+from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, Screen, ScreenManagerException, \
@@ -25,87 +28,15 @@ from kivy.core.window import Window
 from kivy.properties import ObjectProperty
 from kivy.graphics import Color
 
-from database import ConnectionDatabase
+from database import ConnectionDatabase, tasks_from_db, task_from_db
+# from tasks import CurrentTask, NewTask
+from modules import DatePicker, TimePicker
+from my_uix import WrapButton, WrapButtonConfirm, WrapButtonNamed
 
 kivy.require('2.0.0')
 
-load_dotenv()
 
-
-class DatabaseValid:
-    def __init__(self):
-        self.database_connect = ConnectionDatabase(getenv('DB_NAME'))
-
-    def __del__(self):
-        self.database_connect.__del__()
-
-    @staticmethod
-    def task_valid(task):
-        task = task.strip()
-        new_string = []
-        for i in task.splitlines():
-            i = i.strip()
-            i = re.sub("\s\s+", ' ', i)  # funkcja 'sub' zastępuje znalezione wyrażenia wybranym w drugim argumencie.
-            if i != "":
-                new_string.append(i)
-        string = "\n".join(new_string)
-        if len(string) > 300:
-            return 'long'
-        elif string != '':
-            return string
-        else:
-            return False
-
-    def tasks_from_db(self):
-        select = self.database_connect.select_tasks('Tasks')
-        tasks = []
-        for index, task in select:
-            tasks.append((index, task))
-
-        return tasks
-
-    def task_from_db(self, task_id):
-        ...
-
-
-class WrapButton(Button):
-    def __init__(self, _id, **kwargs):
-        super(WrapButton, self).__init__(**kwargs)
-
-        self.id = _id
-
-    @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, value):
-        self._id = value
-
-
-class WrapButtonConfirm(WrapButton):
-    def __init__(self, **kwargs):
-        super(WrapButtonConfirm, self).__init__(**kwargs)
-
-        self.text = 'Wykonane'
-        self.background_normal = ''
-        self.font_size = 16
-        self.color = 'grey'
-        self.size_hint = (0.08, None)
-        self.size_hint_min_y = 20
-        self.size_hint_min_x = 20
-
-
-class WrapButtonNamed(WrapButton):
-    def __init__(self, **kwargs):
-        super(WrapButtonNamed, self).__init__(**kwargs)
-
-        self.background_normal = ''
-        self.font_size = 20
-        self.color = 'grey'
-        self.size_hint = (0.92, None)
-        self.size_hint_min_y = 20
-        self.size_hint_min_x = 20
+# load_dotenv()
 
 
 class GridButtons(GridLayout):
@@ -125,8 +56,8 @@ class GridButtons(GridLayout):
 
     @staticmethod
     def receiving_tasks():
-        db = DatabaseValid()
-        return db.tasks_from_db()
+        # db = CurrentTask()
+        return tasks_from_db()
 
     @staticmethod
     def doorway(*instance):
@@ -137,8 +68,8 @@ class GridButtons(GridLayout):
 
     def execute(self, *instance):
         instance_id = instance[0].id
-        db = DatabaseValid()
-        db.database_connect.mark_done('Tasks', instance_id)
+        db = ConnectionDatabase()
+        db.mark_done('Tasks', instance_id)
         self.remove_task(instance_id)
 
     def remove_task(self, task_id):
@@ -216,42 +147,146 @@ class ToDoTasks(Screen):
 
     def btn(self, instance):
         task_from_kv = self.introduction_input.text
-        task = DatabaseValid.task_valid(task_from_kv)
-        if task == 'long':
+        new_task = NewTask(task_from_kv)
+        if new_task.task_content == 'long':
             popup = Popup(title='Ostrzeżenie',
                           content=Label(text="Tekst jest zbyt rozległy, skróć go."),
                           size_hint=(None, None), size=(400, 400)
                           )
             popup.open()
-        elif task and task != 'long':
-            db = DatabaseValid()
-            db.database_connect.insert_task('Tasks', task)
+        elif new_task.task_content and new_task.task_content != 'long':
+            if new_task.task_date_of_performance:
+                datetime_now = '{} {}'.format(datetime.now().date().isoformat(),
+                                              datetime.now().time().isoformat(timespec='seconds'))
+                if new_task.task_date_of_performance < datetime_now:
+                    popup = Popup(title='Ostrzeżenie',
+                                  content=Label(text="Czas wykonania zadania jest \nwcześniejszy, niż obecna data.\n"
+                                                     "Czy chodziło Ci o wykonanie go w przyszłym roku ?"),
+                                  size_hint=(None, None), size=(400, 400)
+                                  )
+                    popup.open()
+            db = ConnectionDatabase()
+            # insert_task(self, table, task, date_add=None, date_of_performance=None, execution=0)
+            db.insert_task(new_task.table_name, new_task.task_content, new_task.task_date_add,
+                           new_task.task_date_of_performance, new_task.execution)
             self.introduction_input.text = ''
             GridButtons.refresh_new_task()
 
 
 class Task:
-    """This class is an aid to data tasks in the MainWindow class."""
-    task_id = None
-    task_content = ''
-    task_date_add = None
-    task_date_of_performance = None
+    def __init__(self, task_id):
+        self.task_id = task_id
+        self.task_content = None
+        self.task_date_add = None
+        self.task_date_of_performance = None
 
-    @classmethod
-    def receiving_content(cls, task_id):
-        db = DatabaseValid()
-        task = db.database_connect.select_task('Tasks', task_id)
-        cls.task_id = task[0][0]
-        cls.task_content = task[0][1]
-        cls.task_date_add = task[0][2]
-        cls.task_date_of_performance = task[0][3]
+        self.task_date = None  # Must be datetime object
+        self.task_time = None  # too
+
+    def receiving_content(self):
+        db = ConnectionDatabase()
+        task = db.select_task('Tasks', self.task_id)
+        self.task_content = task[0][1]
+        self.task_date_add = task[0][2]
+        self.task_date_of_performance = task[0][3]
+        if self.task_date_of_performance != 'None':
+            values = self.task_date_of_performance.split(sep=' ', maxsplit=1)
+            self.task_date = date.fromisoformat(values[0])
+            if len(values) == 2:
+                self.task_time = time.fromisoformat(values[1])
+
+    def update_data(self):
+        db = ConnectionDatabase()
+        db.update_task('Tasks',
+                       self.task_id,
+                       self.task_content,
+                       self.task_date_of_performance)
+
+
+class NewTask:
+    def __init__(self, input_task):
+        self.table_name = 'Tasks'
+        self.task_date_add = '{} {}'.format(datetime.now().date().isoformat(),
+                                            datetime.now().time().isoformat(timespec='seconds'))
+        self.task_date_of_performance = input_task
+        self.task_content = input_task
+        self.execution = 0
+        print(self.task_date_of_performance)
+        print(self.task_content)
+
+    @property
+    def task_date_of_performance(self):
+        return self.__task_date_of_performance
+
+    @task_date_of_performance.setter
+    def task_date_of_performance(self, input_task):
+        months = {'01': ['sty', 'jan'],
+                  '02': ['lut', 'feb'],
+                  '03': ['mar'],
+                  '04': ['kwi', 'apr'],
+                  '05': ['maj', 'may'],
+                  '06': ['cze', 'jun'],
+                  '07': ['lip', 'jul'],
+                  '08': ['sie', 'aug'],
+                  '09': ['wrz', 'sep'],
+                  '10': ['paz', 'paź', 'oct'],
+                  '11': ['lis', 'nov'],
+                  '12': ['gru', 'dec']}
+
+        regex_search_time = '(\s|^)\d{2}:\d{2}(\s|$)|(\s|^)\d:\d{2}(\s|$)'
+        search_time = re.search(regex_search_time, input_task)
+        if search_time:
+            time_found = search_time.group(0).strip()
+            if len(time_found) == 4:
+                time_found = '0' + time_found
+            input_task = re.sub(regex_search_time, '', input_task)
+        _task_content = input_task
+
+        regex_search_date = '(\s|^)\d{1,2}\s*\w{3}(\s|$)|(\s|^)\w{3}\s*\d{1,2}(\s|$)'
+        search_date = re.search(regex_search_date, input_task)
+        if search_date:
+            date_found = search_date.group(0).strip().lower()
+            _task_content = re.sub(regex_search_date, '', input_task)
+
+            month = re.sub('\d*\s*', '', date_found)
+            day = re.search('\d*', date_found).group(0)
+            month_num = None
+            for key, values in months.items():
+                for word in values:
+                    if month == word:
+                        month_num = key
+                        break
+            date_found = date.fromisoformat(
+                '{year}-{month}-{day}'.format(year=date.today().year, month=month_num, day=day))
+            if date_found < date.today():
+                date_found = date_found.replace(year=date.today().year + 1)
+            date_found = date_found.isoformat()
+
+            if search_time:
+                self.__task_date_of_performance = '{date} {time}'.format(date=date_found, time=time_found)
+            else:
+                self.__task_date_of_performance = date_found
+        else:
+            if search_time:
+                self.__task_date_of_performance = '{date} {time}'.format(
+                    date=date.today().isoformat(), time=time_found
+                )
+            else:
+                self.__task_date_of_performance = None
+        self.task_content_change(_task_content)
+
+    # TODO sprawić, aby self.task_content się zaktualizował
+
+    def task_content_change(self, value):
+        self.task_content = value
 
 
 class MainWindow(Screen):
     current_id = None
     task_content = ObjectProperty(None)
     task_date_of_performance = ObjectProperty(None)
-    task = Task()
+    task_time_of_performance = ObjectProperty(None)
+    task = Task(current_id)
 
     def button_back(self):
         if self.task.task_content != self.task_content.text:
@@ -291,32 +326,61 @@ class MainWindow(Screen):
         sm.current = 'tasks'
 
     def on_enter(self, *args):
-        self.task.receiving_content(self.current_id)
+        self.task = Task(self.current_id)
+        self.task.receiving_content()
+        # print(task.task_id, task.task_content, task.task_date_of_performance)
+        # self.task.task_id = self.current_id
+        # self.task.receiving_content()
 
         self.task_content.text = self.task.task_content
-        self.task_date_of_performance.text = self.task.task_date_of_performance
+        if self.task.task_date:
+            self.task_date_of_performance.text = self.task.task_date.isoformat()
+        else:
+            self.task_date_of_performance.text = 'Dodaj datę'
+        if self.task.task_time:
+            self.task_time_of_performance.text = self.task.task_time.isoformat()
+        else:
+            self.task_time_of_performance.text = 'Dodaj czas'
 
     def execute(self):
-        db = DatabaseValid().database_connect
+        db = ConnectionDatabase()
         db.mark_done(table='Tasks', index=self.current_id)
 
         GridButtons.refresh()
         self.button_back()
 
     def change_date_of_performance(self, *args):
-        popup = Popup(title='Edycja',
-                      content=Label(text=self.task_date_of_performance.text),
-                      size_hint=(None, 200), size=(400, 400), auto_dismiss=False
-                      )
+        if self.task.task_date is not None:
+            date_picker = DatePicker(self.task.task_date)
+        else:
+            date_picker = DatePicker()
+        popup = ModalView(size_hint=(.9, .6), pos_hint={'x': .05, 'y': .2}, auto_dismiss=True)
+        popup.add_widget(date_picker)
+        popup.open()
+        new_date = date_picker.app.selected_date
+
+    def change_time_of_performance(self, *args):
+        if self.task.task_time is not None:
+            time_picker = TimePicker(self.task.task_time)
+        else:
+            time_picker = TimePicker()
+        popup = ModalView(size_hint=(.9, .6), pos_hint={'x': .05, 'y': .2}, auto_dismiss=True)
+        popup.add_widget(time_picker)
         popup.open()
 
     def change_task_content(self, *args):
-        changed_content = self.task_content.text
-        task_validate = DatabaseValid.task_valid(changed_content)
-        if task_validate:
-            db = DatabaseValid()
-            db.database_connect.update_task_content(table='Tasks', index=self.current_id, task=task_validate)
-        GridButtons.refresh_new_task()
+        popup = ModalView(size_hint=(1, .6), pos_hint={'x': .0, 'y': .0}, auto_dismiss=True)
+        text_input = TextInput(text=self.task.task_content)
+        popup.add_widget(text_input)
+        # popup.bind(on_dismiss=self.save_content)
+        popup.open()
+
+        self.task.task_content = text_input.text
+        self.task_content.text = text_input.text
+
+        # TODO Wymyśleć coś, aby podczas wyłączania okienka zapisywały się zmiany
+
+        print(self.task.task_content)
 
 
 class WindowManager(ScreenManager):
@@ -344,3 +408,4 @@ if __name__ == '__main__':
     # launcher = InteractiveLauncher(MyApp())
     # launcher.run()
     MyApp().run()
+    # do wyłączania aplikacji App.get_running_app().stop()

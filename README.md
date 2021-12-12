@@ -5,3 +5,6 @@ python -m pip install --upgrade pip setuptools virtualenv
 python -m venv venv
 * activate environ
 * python -m pip install kivy[base] kivy_examples
+
+Require for buildozer:
+* Cython==29.10

@@ -23,7 +23,8 @@
 
 <MainWindow>:
     task_content: task_content
-    task_date_of_performance: task_date_of_performance
+    task_date_of_performance: task_date
+    task_time_of_performance: task_time
 
     FloatLayout:
         rows: 3
@@ -73,17 +74,33 @@
 
 
         GridLayout:
-            cols: 2
+            cols: 3
             pos_hint: {"x": 0, "top": .2}
             size_hint: 1, .2
 
             Button:
-                id: task_date_of_performance
+                id: task_date
                 background_normal: ''
                 color: 'grey'
                 pos_hint:{"x": 0.2, "top": 1}
                 size_hint:0.8, 0.2
+                on_release:
+                    root.change_date_of_performance()
 
             Button:
-                text: 'coś jeszcze'
+                id: task_time
+                background_normal: ''
+                color: 'grey'
+                pos_hint:{"x": 0.2, "top": 1}
+                size_hint:0.8, 0.2
+                on_release:
+                    root.change_time_of_performance()
 
+            Button:
+                text: 'Edytuj zadanie'
+                background_normal: ''
+                color: 'grey'
+                pos_hint:{"x": 0.2, "top": 1}
+                size_hint:0.8, 0.2
+                on_release:
+                    root.change_task_content()

@@ -1,9 +1,14 @@
-from datetime import datetime
+from os import getenv
+# from datetime import datetime
 import sqlite3
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 class ConnectionDatabase:
-    def __init__(self, database_name):
+    def __init__(self, database_name=getenv('DB_NAME')):
         self.connection = sqlite3.connect(database_name)
         self.cursor = self.connection.cursor()
 
@@ -14,7 +19,7 @@ class ConnectionDatabase:
         self.cursor.execute(sql)
         self.connection.commit()
 
-    def insert_task(self, table, task, date_add=datetime.now(), date_of_performance=None, execution=0):
+    def insert_task(self, table, task, date_add=None, date_of_performance=None, execution=0):
         self.cursor.execute(f"INSERT INTO {table} (task, date_add, date_of_performance, execution) "
                             f"VALUES ('{task}', '{date_add}', '{date_of_performance}', {execution});")
         self.connection.commit()
@@ -41,3 +46,17 @@ class ConnectionDatabase:
     def delete_task(self, table, index):
         self.cursor.execute(f"DELETE FROM {table} WHERE id={index};")
         self.connection.commit()
+
+
+def tasks_from_db():
+    db = ConnectionDatabase()
+    select = db.select_tasks('Tasks')
+    tasks = []
+    for index, task in select:
+        tasks.append((index, task))
+
+    return tasks
+
+
+def task_from_db(task_id):
+    ...
