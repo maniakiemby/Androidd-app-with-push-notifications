@@ -12,11 +12,13 @@
     # size: (root.Window.width, root.Window.height - 50)
 
 <GridButtons>:
-    background_normal: ''
-    cols: 2
-    spacing: 2
-    size_hint_y: None
-    # bind(minimum_height=self.setter('height'))
+    GridLayout:
+        background_normal: ''
+        cols: 2
+        spacing: 2
+        size_hint_y: None
+
+        # bind(minimum_height=self.setter('height'))
 
 
 # <ToDoTasks>:
@@ -68,7 +70,7 @@
             Label:
                 id: task_content
                 background_normal: ''
-                color: 'grey'
+                color: 'white'
                 text_size: self.width - 35, None
                 size_hint: 1, 1
 

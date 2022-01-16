@@ -26,7 +26,7 @@ class ConnectionDatabase:
 
     def select_tasks(self, table, execution=0):
         """Select only 'id' and 'task' of all not complete tasks"""
-        return self.cursor.execute(f"SELECT id, task FROM {table} WHERE execution = {execution};")
+        return self.cursor.execute(f"SELECT id, task, date_of_performance FROM {table} WHERE execution = {execution};")
 
     def select_task(self, table, index):
         """Select all data of one item"""
@@ -35,7 +35,7 @@ class ConnectionDatabase:
 
     def update_task(self, table, index, task, date_of_performance):
         self.cursor.execute(f"UPDATE {table} "
-                            f"SET task = {task}, date_of_performance = {date_of_performance} "
+                            f"SET task = '{task}', date_of_performance = '{date_of_performance}' "
                             f"WHERE id={index};")
         self.connection.commit()
 
@@ -48,15 +48,31 @@ class ConnectionDatabase:
         self.connection.commit()
 
 
-def tasks_from_db():
+def tasks_from_db() -> dict:
     db = ConnectionDatabase()
     select = db.select_tasks('Tasks')
-    tasks = []
-    for index, task in select:
-        tasks.append((index, task))
+    task_dictionary = {}
+    for index, task, date_of_performance in select:
+        task_dictionary[index] = [task, date_of_performance]
 
-    return tasks
+    return task_dictionary
 
 
-def task_from_db(task_id):
-    ...
+def sort_tasks_by_date(_dict: dict) -> dict:
+    list_tasks = []
+    for index, value in _dict.items():
+        list_tasks.append((index, value[0], value[1]))
+
+    list_tasks.sort(key=lambda val: val[2])
+
+    _dict.clear()
+    for task_group in list_tasks:
+        _dict[task_group[0]] = [task_group[1], task_group[2]]
+
+    return _dict
+
+
+if __name__ == '__main__':
+    task_list = tasks_from_db()
+    task_dict = sort_tasks_by_date(task_list)
+    print(task_dict)
