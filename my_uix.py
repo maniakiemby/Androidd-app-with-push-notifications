@@ -83,7 +83,7 @@ class IntroductionTextInput(TextInput):
         super(IntroductionTextInput, self).__init__(**kwargs)
         self.focus = True
 
-        self.hint_text = 'przykładowy format daty: 00:00 1sty | 1sty 1:08'
+        self.hint_text = 'przykładowy format daty i godziny: 00:00 1sty | 1sty 1:08'
 
 
 class TaskBoardGridLayout(GridLayout):

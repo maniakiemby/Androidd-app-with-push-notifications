@@ -1,9 +1,9 @@
-from os import getenv
+import os
 import re
 # from functools import partial
 from datetime import datetime, date, time
 from time import sleep as time_sleep
-
+import sqlite3
 # from collections import namedtuple
 from typing import Union
 
@@ -45,9 +45,76 @@ from my_uix import (WrapButtonConfirm,
                     )
 
 kivy.require('2.0.0')
+__version__ = "0.1"
 
 
 # load_dotenv()
+
+
+class Start(Screen):
+    def __init__(self, **kwargs):
+        super(Start, self).__init__(**kwargs)
+        os.system('ls > file_test.txt')
+
+        with open('file_test.txt', 'r') as f:
+            if 'database.db' in f.read():
+                pass
+            else:
+                sql = "CREATE TABLE Tasks " \
+                      "(id INTEGER PRIMARY KEY AUTOINCREMENT, " \
+                      "task TEXT, " \
+                      "date_add DATETIME, " \
+                      "date_of_performance DATETIME, " \
+                      "execution BIT)"
+                connection = sqlite3.connect('database.db')
+                cursor = connection.cursor()
+                cursor.execute(sql)
+                connection.commit()
+                connection.close()
+                # database_connection = ConnectionDatabase(os.getenv('DB_NAME'))
+                # database_connection.create_table(sql)
+        os.system('rm file_test.txt')
+
+    @staticmethod
+    def done():
+        sm.transition.direction = 'down'
+        sm.current = 'start_continued'
+
+
+class StartContinued(Screen):
+    def __init__(self, **kwargs):
+        super(StartContinued, self).__init__(**kwargs)
+        self.layout = GridLayout(cols=1)
+        self.sql_text = "INSERT INTO Tasks (task, date_add, date_of_performance, execution) " \
+                        "VALUES ('próbne zadanie do wykonania.', 'None', 'None', 0);"
+        self.connection = sqlite3.connect('database.db')
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(self.sql_text)
+        self.connection.commit()
+        # database_connection = ConnectionDatabase(os.getenv('DB_NAME'))
+        # database_connection.insert_task('Tasks', 'próbne zadanie do wykonania.')
+        # tasks = database_connection.select_tasks('Tasks')
+        self.sql_text = "SELECT id, task, date_of_performance FROM Tasks;"
+        tasks = self.cursor.execute(self.sql_text)
+        self.connection.commit()
+
+        task_dictionary = {}
+        for index, task, date_of_performance in tasks:
+            task_dictionary[index] = [task, date_of_performance]
+        self.connection.close()
+        for index, task in task_dictionary.items():
+            print(f"{task[0]}, {task[1]}")
+            label = Label(text=f"{task[0]}, {task[1]}", font_size=22)
+            self.layout.add_widget(label)
+
+        self.layout.add_widget(Label(text='Hej !'))
+        self.add_widget(self.layout)
+        # print('Teraz będzie time sleep')
+
+    @staticmethod
+    def done():
+        sm.transition.direction = 'right'
+        sm.current = 'tasks'
 
 
 class TaskBoard(TaskBoardGridLayout):
@@ -130,6 +197,8 @@ class ToDoTasks(Screen):
                     popup.cancel.bind(on_press=self.insert)
 
                     popup.open()
+                else:
+                    self.insert()
             else:
                 self.insert()
 
@@ -137,7 +206,7 @@ class ToDoTasks(Screen):
         self.new_task.task_date_of_performance = date.fromisoformat(self.new_task.task_date_of_performance)
         self.new_task.task_date_of_performance = self.new_task.task_date_of_performance.replace(
             year=date.today().year + 1
-                ).isoformat()
+        ).isoformat()
         self.insert()
 
     def insert(self, *args):
@@ -444,11 +513,14 @@ kv = Builder.load_file("MyApp.kv")
 
 sm = WindowManager()
 
-screens = [ToDoTasks(name='tasks'), MainWindow(name='task_window')]
+screens = [Start(name='start'), StartContinued(name='start_continued'), ToDoTasks(name='tasks'),
+           MainWindow(name='task_window')]
 for screen in screens:
     sm.add_widget(screen)
 
-sm.current = 'tasks'
+sm.current = 'start'
+Start.done()
+StartContinued.done()
 
 
 class MyApp(App):
