@@ -1,21 +1,22 @@
-from os import getenv
-# from datetime import datetime
 import sqlite3
-from dotenv import load_dotenv
-
-
-load_dotenv()
 
 
 class ConnectionDatabase:
-    def __init__(self, database_name=getenv('DB_NAME')):
-        self.connection = sqlite3.connect(database_name)
+    def __init__(self):
+        self.connection = sqlite3.connect('database.db')
         self.cursor = self.connection.cursor()
 
     def __del__(self):
         self.connection.close()
 
-    def create_table(self, sql: str):
+    def create_table(self, sql=None):
+        if not sql:
+            sql = "CREATE TABLE Tasks " \
+                  "(id INTEGER PRIMARY KEY AUTOINCREMENT, " \
+                  "task TEXT, " \
+                  "date_add DATETIME, " \
+                  "date_of_performance DATETIME, " \
+                  "execution BIT)"
         self.cursor.execute(sql)
         self.connection.commit()
 
@@ -73,6 +74,7 @@ def sort_tasks_by_date(_dict: dict) -> dict:
 
 
 if __name__ == '__main__':
-    task_list = tasks_from_db()
-    task_dict = sort_tasks_by_date(task_list)
-    print(task_dict)
+    pass
+    # task_list = tasks_from_db()
+    # task_dict = sort_tasks_by_date(task_list)
+    # print(task_dict)

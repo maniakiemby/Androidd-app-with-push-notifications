@@ -30,7 +30,7 @@ from my_uix import (CalendarButtonDay,
                     CancelContentChangesButton
                     )
 
-Builder.load_file('pickers.kv')
+# Builder.load_file('pickers.kv')
 
 
 def cancel(*args):
@@ -168,7 +168,7 @@ class ContentChanges(GridLayout):
 
         self.cancel_button = CancelContentChangesButton(on_release=cancel)
         self.add_widget(self.cancel_button)
-        self.text_input = TextInput(text=self.text)
+        self.text_input = TextInput(text=self.text, input_type='text')
         self.add_widget(self.text_input)
 
 

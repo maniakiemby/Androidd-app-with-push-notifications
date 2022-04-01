@@ -9,8 +9,11 @@ moje_readme.txt
 training/
 database.db
 automation.py
-venv_win
-venv_lin
+venvwin
+venvlin
 buildozer.spec
 tests
-
+exclusions/
+data/icons8.com.txt
+bin/
+.buildozer/

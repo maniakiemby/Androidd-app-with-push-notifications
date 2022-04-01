@@ -81,9 +81,12 @@ class ValidMessageChangeYear(ValidMessageYesOrNo):
 class IntroductionTextInput(TextInput):
     def __init__(self, **kwargs):
         super(IntroductionTextInput, self).__init__(**kwargs)
+        self.input_type = 'text'
         self.focus = True
+        self.font_size = 65
+        # self.size_hint = (0.7, 0.7)
 
-        self.hint_text = 'przykładowy format daty i godziny: 00:00 1sty | 1sty 1:08'
+        self.hint_text = '00:00 1sty | 1sty 1:08'
 
 
 class TaskBoardGridLayout(GridLayout):
@@ -106,24 +109,24 @@ class WrapButton(Button):
 class WrapButtonConfirm(WrapButton):
     def __init__(self, **kwargs):
         super(WrapButtonConfirm, self).__init__(**kwargs)
-        self.text = 'Wykonane'
+        self.text = 'V'
         self.background_normal = ''
-        self.font_size = 16
+        self.font_size = 75
         self.color = 'grey'
-        self.size_hint = (0.08, None)
-        self.size_hint_min_y = 20
-        self.size_hint_min_x = 20
+        self.size_hint = (None, None)
+        self.size_hint_min_y = 50
+        self.size_hint_min_x = 50
 
 
 class WrapButtonNamed(WrapButton):
     def __init__(self, **kwargs):
         super(WrapButtonNamed, self).__init__(**kwargs)
         self.background_normal = ''
-        self.font_size = 20
+        self.font_size = 75
         self.color = 'grey'
-        self.size_hint = (0.92, None)
-        self.size_hint_min_y = 20
-        self.size_hint_min_x = 20
+        self.size_hint = (1, None)
+        self.size_hint_min_y = 50
+        self.size_hint_min_x = 50
 
 
 class CalendarButtonDay(Button):
