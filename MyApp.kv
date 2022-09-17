@@ -1,0 +1,253 @@
+<MenuActionBar>:
+    pos_hint: {'x': 1, 'top': 1}
+    size_hint: (1, .1)
+
+
+<DatePicker>:
+    rows: 6
+    # cols: 1
+    background_normal: ''
+    # background_color: utils.get_color_from_hex('')
+    # selected_date: selected_date
+    # month: month
+
+<TimePicker>:
+    rows: 3
+    background_normal: ''
+    padding: 25
+    spacing: 15
+
+<TasksPageScrollView>:
+    background_normal: ''
+    size_hint: (1, .9)
+    # pos_hint: {'x': .05}
+    # center_x: .5
+    do_scroll_x: False
+    do_scroll_y: True
+
+
+<TaskBoardGridLayout>:
+    cols: 2
+    background_color: ''
+    spacing: 3
+    size_hint_y: None
+
+
+<ButtonNewTask>:
+    Image:
+        id: new_task_image
+        source: 'data/add.png'
+        center_x: self.parent.center_x - .2
+        center_y: self.parent.center_y
+        size_hint_x: .3
+        allow_stretch: True
+
+<WrapButton>:
+    text_size: self.width - 15, None
+    height: self.texture_size[1]
+
+<ExecuteButtonTasksView>:
+    background_normal: ''
+    size_hint: (.15, .2)
+    # size_hint_min_y: .5
+    Image:
+        id: confirm_image
+        source: 'data/check-circle-100.png'
+        center_x: self.parent.center_x - .2
+        center_y: self.parent.center_y
+        size_hint_x: .3
+        allow_stretch: True
+
+<TaskButtonTasksView>:
+    background_normal: ''
+    font_size: 75
+    color: 'grey'
+    size_hint: (1, None)
+    size_hint_min: (None, .5)
+
+<NewTaskPage>:
+    background_color: (0,0,0,.4)
+    GridLayout:
+        id: layout
+        cols: 1
+        rows: 1
+        pos_hint: {'x': 0, 'y': .3}
+        size_hint: (1, .7)
+
+
+<CancelContentChangesButton>:
+    Image:
+        id: cancel_image
+        source: 'data/cancel.png'
+        center_x: self.parent.center_x - .2
+        center_y: self.parent.center_y
+        size_hint_x: .3
+        allow_stretch: True
+
+#<ButtonNewTask@Button>
+ #   background_color: (0,0,0,.3)
+  #  background_normal: ''
+   # canvas.before:
+    #    Color:
+     #       rgba: (48/255,84/255,150/250)
+      #  RoundedRectangle:
+       #     size: self.size
+        #    pos: self.pos
+         #   radius: [50]
+
+<MainWindow>:
+    task_content: task_content
+    task_date_of_performance: task_date
+    task_time_of_performance: task_time
+
+    GridLayout:
+        rows: 3
+
+        FloatLayout:
+            size_hint: (.18, .2)
+
+            Button:
+                background_color: (0,0,0,0)
+                size_hint: .18, .7
+                pos_hint: {"x": 0, "top": 1}
+                on_release:
+                    root.button_back()
+                Image:
+                    id: button_back_image
+                    source: 'data/done.png'
+                    center_x: self.parent.center_x - .2
+                    center_y: self.parent.center_y
+                    size_hint_x: .3
+                    allow_stretch: True
+
+        FloatLayout:
+            pos_hint: {"x": 0, "top": 1}
+
+            Button:
+                # text: 'V'
+                # id: execute_task
+                background_color: (0,0,0,0)
+                size_hint: (.2, .2)
+                pos_hint: {"x": .01, "top": .8}
+                on_release:
+                    root.execute()
+                Image:
+                    id: execute_image
+                    source: 'data/check-circle-150.png'
+                    center_x: self.parent.center_x - .2
+                    center_y: self.parent.center_y
+                    size_hint_x: .3
+                    allow_stretch: True
+
+            TextInput:
+                background_color: (0,0,0,.1)
+                id: task_content
+                # background_normal: ''
+                color: 'black'
+                text_size: root.width * .7, root.height * .2
+                # size: self.texture_size
+                size_hint: (.78, .4)
+                pos_hint: {'x': .21, 'top': .9}
+
+
+        GridLayout:
+            cols: 2
+            pos_hint: {"x": 0, "top": .12}
+            size_hint: 1, .12
+            spacing: 2
+
+            Button:
+                id: task_date
+                background_normal: ''
+                color: 'grey'
+                pos_hint:{"x": 0.2, "top": 1}
+                size_hint:0.8, 0.2
+                on_release:
+                    root.change_date_of_performance()
+
+            Button:
+                id: task_time
+                background_normal: ''
+                color: 'grey'
+                pos_hint:{"x": 0.2, "top": 1}
+                size_hint:0.8, 0.2
+                on_release:
+                    root.change_time_of_performance()
+
+            #Button:
+             #   text: 'Edytuj zadanie'
+              #  background_normal: ''
+               # color: 'grey'
+                #pos_hint:{"x": 0.2, "top": 1}
+                #size_hint:0.8, 0.2
+                #on_release:
+                 #   root.change_task_content()
+
+
+#  Below for application notebook
+
+
+<ExpensesPageScrollView>:
+    do_scroll_x: False
+    do_scroll_y: True
+    background_normal: ''
+    size_hint: (1, .9)
+
+<NewExpensePage>:
+    GridLayout:
+        rows: 5
+        size_hint: .8, .6
+        pos_hint: {"x": .1, "top": .875}
+
+        CostNumberInput:
+            id: expense
+
+        Button:
+            id: category
+            text: "wybierz kategorię"
+            auto_width: False
+
+        TextInput:
+            id: matter
+
+        Button:
+            id: date_add
+            on_release:
+                root.open_date_picker()
+
+    Button:
+        id: cancel
+        size_hint: .15, .1
+        pos_hint: {"x": 0, "top": 1}
+        on_release:
+            root.back()
+        Image:
+            id: cancel_image
+            source: 'data/cancel.png'
+            center_x: self.parent.center_x - .2
+            center_y: self.parent.center_y
+            size_hint_x: .3
+            allow_stretch: True
+
+    Button:
+        id: confirm
+        # background_color: (0,0,0,0)
+        size_hint: (.15, .1)
+        pos_hint: {"x": .7, "top": .15}
+        on_release:
+            root.insert_expense()
+        Image:
+            id: execute_image
+            source: 'data/done.png'
+            center_x: self.parent.center_x - .2
+            center_y: self.parent.center_y
+            size_hint_x: .3
+            allow_stretch: True
+
+
+<ButtonExpense>:
+    background_normal: ''
+    font_size: 75
+    color: 'grey'
+    size_hint: (1, None)
+    size_hint_min: (None, .5)

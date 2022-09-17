@@ -12,6 +12,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty
 
@@ -27,7 +29,9 @@ from my_uix import (CalendarButtonDay,
                     CancelButtonDate,
                     CancelButtonTime,
                     EnteringTimeBox,
-                    CancelContentChangesButton
+                    CancelContentChangesButton,
+                    IntroductionNewContent,
+                    ConfirmAddingButton
                     )
 
 # Builder.load_file('pickers.kv')
@@ -42,16 +46,15 @@ def cancel(*args):
 class DatePicker(GridLayout):
     def __init__(self, date_value=date.today(), **kwargs):
         super(DatePicker, self).__init__(**kwargs)
-        # self.rows = 5
         self.selected_date = date_value
 
         self.head = TitleCurrentDateWidget()
         head_date = self.head_date_format()
-        self.head_label = Label(text=head_date, font_size=21)
+        self.head_label = Label(text=head_date, font_size=100)
         self.head.add_widget(self.head_label)
-        self.today = ButtonToday(text='dziś', on_release=self.set_today)
+        self.today = ButtonToday(on_release=self.set_today)
         self.head.add_widget(self.today)
-        self.cancel_button = CancelButtonDate(text="Anuluj", on_release=cancel)
+        self.cancel_button = CancelButtonDate(on_release=cancel)
         self.head.add_widget(self.cancel_button)
         self.add_widget(self.head)
 
@@ -160,16 +163,35 @@ class TimePicker(GridLayout):
         self.add_widget(self.entering)
 
 
-class ContentChanges(GridLayout):
-    def __init__(self, text, **kwargs):
-        super(ContentChanges, self).__init__(**kwargs)
-        self.rows = 2
-        self.text = text
-
-        self.cancel_button = CancelContentChangesButton(on_release=cancel)
+class Content(FloatLayout):
+    def __init__(self, content_text='', behavior='', **kwargs):
+        super(Content, self).__init__(**kwargs)
+        self.text_input = IntroductionNewContent(text=content_text)
+        self.confirm_adding = ConfirmAddingButton()
+        if behavior == 'data change':
+            self.cancel_button = CancelContentChangesButton(on_release=cancel)
+            self.confirm_adding.text = 'Zmień'
+        if behavior == 'new data':
+            self.cancel_button = CancelContentChangesButton()
         self.add_widget(self.cancel_button)
-        self.text_input = TextInput(text=self.text, input_type='text')
         self.add_widget(self.text_input)
+        self.add_widget(self.confirm_adding)
+
+
+def list_of_categories():
+    with open('categories_of_expenses.txt', 'r', encoding='UTF-8') as f:
+        values = f.readlines()
+
+    return [category.strip() for category in values]
+
+
+class NewExpense:
+    def __init__(self):
+        self.index = None
+        self.expense = None
+        self.category_id = None
+        self.matter = None
+        self.date_add = datetime.now().date().isoformat()
 
 
 if __name__ == '__main__':

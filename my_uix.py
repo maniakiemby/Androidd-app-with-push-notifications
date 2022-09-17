@@ -1,15 +1,54 @@
 from typing import Union
 import re
+from datetime import datetime
 
 from kivy.app import App
+from kivy.core.window import Window
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.modalview import ModalView
+from kivy.uix.image import Image
+from kivy.graphics import BorderImage
+from kivy.uix.actionbar import ActionBar, ActionView, ActionGroup, ActionButton, ActionPrevious
+from kivy.uix.dropdown import DropDown
+
+
+class Menu(BoxLayout):
+    def __init__(self, current: str, **kwargs):
+        super(Menu, self).__init__(**kwargs)
+        self.menu_action_bar = MenuActionBar(current=current)
+        self.add_widget(self.menu_action_bar)
+
+
+class MenuActionBar(ActionBar):
+    def __init__(self, current: str, **kwargs):
+        super(MenuActionBar, self).__init__(**kwargs)
+        self.action_view = ActionView(use_separator=True)
+        self.current = current  # tasks or notebook
+        if self.current == 'tasks':
+            self.action_previous = ActionPrevious(title='Moje zadania', with_previous=False)
+            self.action_button = ActionButton(text='Zeszyt')
+        else:
+            self.action_previous = ActionPrevious(title='Zeszyt z wydatkami', with_previous=False)
+            self.action_button = ActionButton(text='Moje zadania')
+
+        self.action_view.add_widget(self.action_previous)
+        self.action_view.add_widget(self.action_button)
+        self.add_widget(self.action_view)
+
+        # self.text = 'Wybór'
+        # self.mode = 'spinner'
+        # self.action_button_tasks = ActionButton(text='zadania')
+        # self.action_button_notebook = ActionButton(text='zeszyt')
+        #
+        # self.add_widget(self.action_button_tasks)
+        # self.add_widget(self.action_button_notebook)
 
 
 class ValidMessage(ModalView):
@@ -31,16 +70,32 @@ class ValidMessage(ModalView):
         self.add_widget(self.layout)
 
 
+class IntroductionModalView(ModalView):
+    def __init__(self, **kwargs):
+        super(IntroductionModalView, self).__init__(**kwargs)
+        self.auto_dismiss = False
+        self.background_color = (0, 0, 0, .2)
+        self.pos_hint = {'x': 0, 'y': .3}
+        self.size_hint = (1, .7)
+
+
 class ErrorMessage(ValidMessage):
     def __init__(self, **kwargs):
         super(ErrorMessage, self).__init__(**kwargs)
-
         self.size = (400, 125)
         self.message_content = 'Wykonywana operacja nie powiodła się.'
         self.choice_layout.add_widget(
             Button(text='Ok', size=(0.2, 0.1), on_press=self.dismiss)
         )
         self.open()
+
+
+class ValidMessageLongText(ValidMessage):
+    def __init__(self, **kwargs):
+        super(ValidMessageLongText, self).__init__(**kwargs)
+        self.message_content.text = "Tekst jest zbyt rozległy, skróć go.\nMoże mieć maksymalnie 300 znaków."
+        confirm_button = Button(text='Ok', on_press=self.dismiss)
+        self.choice_layout.add_widget(confirm_button)
 
 
 class ValidMessageYesOrNo(ValidMessage):
@@ -78,68 +133,97 @@ class ValidMessageChangeYear(ValidMessageYesOrNo):
         self.dismiss()
 
 
-class IntroductionTextInput(TextInput):
-    def __init__(self, **kwargs):
-        super(IntroductionTextInput, self).__init__(**kwargs)
-        self.input_type = 'text'
-        self.focus = True
-        self.font_size = 65
-        # self.size_hint = (0.7, 0.7)
+# TODO stworzyć klasę bazową i dwie klasy dziedziczące, oddzielnie do dodawania nowego zadania
+#  i do edycji zadania
+#  klasa dodająca nowe zadanie ma zajmować się separacją daty i czasu we właściwy sposób.
+#  Do tego właściwie podkreślać za długi tekst (obecnie tekst jest skracany o datę i czas,
+#  a podkreślenie wynikające ze zbyt długiego tekstu nie bierze tego pod uwagę).
 
+class IntroductionNewContent(TextInput):
+    def __init__(self, **kwargs):
+        super(IntroductionNewContent, self).__init__(**kwargs)
+        self.input_type = 'text'
+        self.multiline = False
+        self.font_size = 65
+
+        self.pos_hint = {'x': .05, 'y': .55}
+        self.size_hint = (0.9, 0.2)
         self.hint_text = '00:00 1sty | 1sty 1:08'
+
+    # def on_text(self, instance, value):
+    #     if len(value) >= 300:
+    #         self.background_color = [1, .141, .2, 1]
+    #     super(IntroductionNewContent, self).on_text(instance, value)
+
+    """def insert_text(self, substring, from_undo=True):
+        if len(self.text) >= 300:
+            self.background_color = [1, .141, .2, 1]
+        super(IntroductionNewContent, self).insert_text(substring, from_undo)
+
+    def do_backspace(self, from_undo=True, mode='bkspc'):
+        if len(self.text) <= 301:
+            self.background_color = [1, 1, 1, .8]
+        super(IntroductionNewContent, self).do_backspace(from_undo, mode)
+    """
+
+
+class TasksPageScrollView(ScrollView):
+    def __init__(self, **kwargs):
+        super(TasksPageScrollView, self).__init__(**kwargs)
+        self.size = (Window.width, Window.height)
+        self.button_new_task_obj = None
+        self.direction_value = None
+
+    def on_touch_down(self, touch):
+        if self.direction_value is not None:
+            if touch.pos[1] > self.direction_value:
+                self.button_new_task_obj.show()
+            elif touch.pos[1] < self.direction_value:
+                self.button_new_task_obj.hide()
+        self.direction_value = touch.pos[1]
+
+        super(TasksPageScrollView, self).on_touch_down(touch)
 
 
 class TaskBoardGridLayout(GridLayout):
     def __init__(self, **kwargs):
         super(TaskBoardGridLayout, self).__init__(**kwargs)
-        self.cols = 2
-        self.background_normal = ''
-        self.spacing = 2
-        self.size_hint_y = None
+        # self.cols = 2
+        # self.background_normal = ''
+        # self.spacing = 3
+        # self.size_hint_y = None
         self.bind(minimum_height=self.setter('height'))
 
 
 class WrapButton(Button):
-    def __init__(self, index: int, info=Union[None, str], **kwargs):
+    def __init__(self, index: int, info: Union[None, str], **kwargs):
         super(WrapButton, self).__init__(**kwargs)
-        self.id = index
+        self.index = index
         self.info = info
 
 
-class WrapButtonConfirm(WrapButton):
+class ExecuteButtonTasksView(WrapButton):
     def __init__(self, **kwargs):
-        super(WrapButtonConfirm, self).__init__(**kwargs)
-        self.text = 'V'
-        self.background_normal = ''
-        self.font_size = 75
-        self.color = 'grey'
-        self.size_hint = (None, None)
-        self.size_hint_min_y = 50
-        self.size_hint_min_x = 50
+        super(ExecuteButtonTasksView, self).__init__(**kwargs)
 
 
-class WrapButtonNamed(WrapButton):
+class TaskButtonTasksView(WrapButton):
     def __init__(self, **kwargs):
-        super(WrapButtonNamed, self).__init__(**kwargs)
-        self.background_normal = ''
-        self.font_size = 75
-        self.color = 'grey'
-        self.size_hint = (1, None)
-        self.size_hint_min_y = 50
-        self.size_hint_min_x = 50
+        super(TaskButtonTasksView, self).__init__(**kwargs)
 
 
 class CalendarButtonDay(Button):
     def __init__(self, index: int, **kwargs):
         super(CalendarButtonDay, self).__init__(**kwargs)
         self.id = index
+        self.size_hint = (1, 1)
 
 
 class TitleCurrentDateWidget(BoxLayout):
     def __init__(self, **kwargs):
         super(TitleCurrentDateWidget, self).__init__(**kwargs)
         self.orientation = 'horizontal'
-        self.size_hint = (None, None)
+        self.size_hint = (1, .4)
         self.size = (400, 25)
         self.padding = 10
         self.spacing = 30
@@ -149,21 +233,24 @@ class TitleCurrentDateWidget(BoxLayout):
 class ButtonToday(Button):
     def __init__(self, **kwargs):
         super(ButtonToday, self).__init__(**kwargs)
-        self.size_hint = (.25, 0.9)
+        self.size_hint = (.5, 1)
+        self.text = 'Dziś'
 
 
 class CancelButtonDate(Button):
     def __init__(self, **kwargs):
         super(CancelButtonDate, self).__init__(**kwargs)
-        self.size_hint = (.25, 0.9)
+        self.size_hint = (.5, 1)
+        self.text = 'Anuluj'
+        # self.
 
 
 class SelectorMonthsWidget(BoxLayout):
     def __init__(self, **kwargs):
         super(SelectorMonthsWidget, self).__init__(**kwargs)
         self.orientation = 'horizontal'
-        self.size_hint = (None, None)
-        self.size = (400, 60)
+        self.size_hint = (1, .4)
+        # self.size = (400, 200)
         self.padding = 10
         self.spacing = 15
 
@@ -171,22 +258,23 @@ class SelectorMonthsWidget(BoxLayout):
 class SelectorMonthsLabel(Label):
     def __init__(self, **kwargs):
         super(SelectorMonthsLabel, self).__init__(**kwargs)
-        self.font_size = 22
-        self.pos = (0.5, 0.5)
+        self.font_size = 100
+        self.pos = (1, 1)
 
 
 class SelectorMonthsButtonPrevious(Button):
     def __init__(self, **kwargs):
         super(SelectorMonthsButtonPrevious, self).__init__(**kwargs)
         self.text = '<'
-        self.width = 60
-        self.size_hint = (0.12, 0.8)
+        # self.width = 60
+        self.size_hint = (0.5, 1)
 
 
 class SelectorMonthsButtonNext(SelectorMonthsButtonPrevious):
     def __init__(self, **kwargs):
         super(SelectorMonthsButtonNext, self).__init__(**kwargs)
         self.text = '>'
+        # self.size_hint = (0.5, 1)
 
 
 class CalendarLayoutWidget(GridLayout):
@@ -231,11 +319,15 @@ class NumberInput(TextInput):
         return super(NumberInput, self).insert_text(s, from_undo=from_undo)
 
 
+class CostNumberInput(TextInput):
+    pat = re.compile('[0-9]*[,.]*[0-9]{2}')
+
+
 class TimeInput(NumberInput):
     def __init__(self, **kwargs):
         super(TimeInput, self).__init__(**kwargs)
         self.input_type = 'number'
-        self.size_hint = (None, None)
+        self.size_hint = (1, 1)
         self.font_size = 60
         self.center_x = 200
 
@@ -243,6 +335,55 @@ class TimeInput(NumberInput):
 class CancelContentChangesButton(Button):
     def __init__(self, **kwargs):
         super(CancelContentChangesButton, self).__init__(**kwargs)
-        self.size_hint = (.1, .1)
-        self.text = 'Anuluj zmiany'
-        # self.size = (.1, .3)
+        self.pos_hint = {'x': 0, 'top': 1}
+        self.size_hint = (.13, .12)
+        self.background_color = (0, 0, 0, 0)
+        self.background_normal = ''
+
+
+class ButtonNewTask(Button):
+    def __init__(self, **kwargs):
+        super(ButtonNewTask, self).__init__(**kwargs)
+        self.pos_hint = {'x': .65, 'top': .2}
+        self.size_hint = (.15, .08)
+        self.background_color = (0, 0, 0, 0)
+        self.background_normal = ''
+
+    def hide(self):
+        self.pos_hint = {'x': .65, 'top': .9}
+
+    def show(self):
+        self.pos_hint = {'x': .65, 'top': .2}
+
+
+class ConfirmAddingButton(Button):
+    def __init__(self, **kwargs):
+        super(ConfirmAddingButton, self).__init__(**kwargs)
+        self.pos_hint = {'x': .6, 'top': .3}
+        self.size_hint = (.3, .15)
+        self.background_color = (0, 0, 0, .5)
+        self.background_normal = ''
+        self.font_size = 65
+        self.text = 'dodaj'
+
+
+#  below for application notebook
+
+
+class ButtonExpense(Button):
+    def __init__(self, **kwargs):
+        super(ButtonExpense, self).__init__(**kwargs)
+
+
+class ExpensesPageScrollView(ScrollView):
+    def __init__(self, **kwargs):
+        super(ExpensesPageScrollView, self).__init__(**kwargs)
+        self.size = (Window.width, Window.height)
+
+
+class CategorySelector:
+    def __init__(self, **kwargs):
+        super(CategorySelector, self).__init__(**kwargs)
+        # https://kivy.org/doc/stable/api-kivy.uix.dropdown.html
+        # self.categories =
+        self.dropdown = DropDown()
