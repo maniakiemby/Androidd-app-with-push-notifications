@@ -4,12 +4,16 @@
 
 
 <DatePicker>:
-    rows: 6
-    # cols: 1
+    rows: 3
     background_normal: ''
     # background_color: utils.get_color_from_hex('')
-    # selected_date: selected_date
-    # month: month
+
+<CalendarLayoutWidget>:
+    cols: 7
+    rows: 7
+    padding: 40
+    spacing: 10
+
 
 <TimePicker>:
     rows: 3
@@ -26,11 +30,12 @@
     do_scroll_y: True
 
 
-<TaskBoardGridLayout>:
+<TaskBoard>:
     cols: 2
     background_color: ''
-    spacing: 3
+    spacing: 4
     size_hint_y: None
+    # padding: (5, 0)
 
 
 <ButtonNewTask>:
@@ -49,7 +54,7 @@
 <ExecuteButtonTasksView>:
     background_normal: ''
     size_hint: (.15, .2)
-    # size_hint_min_y: .5
+    padding: (0, 50)
     Image:
         id: confirm_image
         source: 'data/check-circle-100.png'
@@ -63,9 +68,9 @@
     font_size: 75
     color: 'grey'
     size_hint: (1, None)
-    size_hint_min: (None, .5)
+    padding: (10, 50)
 
-<NewTaskPage>:
+<AddTaskPage>:
     background_color: (0,0,0,.4)
     GridLayout:
         id: layout
@@ -193,7 +198,13 @@
     background_normal: ''
     size_hint: (1, .9)
 
-<NewExpensePage>:
+<ExpensesNotebook>:
+    cols: 1
+    spacing: 4
+    size_hint_y: None
+    # padding: (5, 0)
+
+<ExpenseLayout>:
     GridLayout:
         rows: 5
         size_hint: .8, .6
@@ -201,6 +212,7 @@
 
         CostNumberInput:
             id: expense
+            # text_size: root.width * .7, root.height * .2
 
         Button:
             id: category
@@ -219,8 +231,7 @@
         id: cancel
         size_hint: .15, .1
         pos_hint: {"x": 0, "top": 1}
-        on_release:
-            root.back()
+
         Image:
             id: cancel_image
             source: 'data/cancel.png'
@@ -234,8 +245,8 @@
         # background_color: (0,0,0,0)
         size_hint: (.15, .1)
         pos_hint: {"x": .7, "top": .15}
-        on_release:
-            root.insert_expense()
+        # on_release:
+            # root.insert_expense()
         Image:
             id: execute_image
             source: 'data/done.png'
@@ -244,10 +255,10 @@
             size_hint_x: .3
             allow_stretch: True
 
+<AddExpensePage>:
 
-<ButtonExpense>:
-    background_normal: ''
+<ExpenseButtonExpenseView>:
+    # background_normal: ''
     font_size: 75
-    color: 'grey'
     size_hint: (1, None)
-    size_hint_min: (None, .5)
+    padding: (10, 50)

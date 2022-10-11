@@ -3,8 +3,8 @@ import sqlite3
 
 class ConnectionDatabase:
     def __init__(self):
-        # self.database_name = 'database.db'
-        self.database_name = 'test_database.db'
+        self.database_name = 'database.db'
+        # self.database_name = 'test_database.db'
         self.connection = sqlite3.connect(self.database_name)
         self.cursor = self.connection.cursor()
 
@@ -88,75 +88,35 @@ def sort_tasks_by_date(_dict: dict) -> dict:
     return _dict
 
 
-class ConnectionDatabaseCategoriesExpenses(ConnectionDatabase):
-    def __init__(self):
-        super(ConnectionDatabaseCategoriesExpenses, self).__init__()
-        self.table_name = 'CategoriesOfExpenses'
-        # self.values = ['paliwo',
-        #                'inne wydatki na samochód',
-        #                'opis, jakie wydatki na samochód',
-        #                'mieszkanie / odstępne',
-        #                'mieszkanie / czynsz',
-        #                'abonament / telefon i internet',
-        #                'inne abonamenty',
-        #                'podstawowe wydatki',
-        #                'niepodstawowe wydatki',
-        #                'większe wydatki',
-        #                'opis, jakie wydatki',
-        #                'odłożone pieniądze',
-        #                'Natalia dała na mieszkanie',
-        #                'odsetki kart kredytowcyh i inne opłaty za prowadzenie rachunków']
-        with open('categories_of_expenses.txt', 'r') as f:
-            self.values = f.readlines()
-
-    # TODO zamiast bazy danych 'kategorie' będą przechowywane w zwykłym pliku .txt
-
-    def create_table(self, sql=None):
-        if not sql:
-            sql = f"CREATE TABLE IF NOT EXISTS {self.table_name} " \
-                   "(id INTEGER PRIMARY KEY AUTOINCREMENT, " \
-                   "category_name TEXT NOT NULL UNIQUE);"
-        self.cursor.execute(sql)
-        self.connection.commit()
-
-    def create_categories(self, sql=None):
-        if not sql:
-            for value in self.values:
-                sql = f"INSERT OR IGNORE INTO {self.table_name} (category_name) VALUES ('{value}');"
-                self.cursor.execute(sql)
-        self.connection.commit()
-
-
 class ConnectionDatabaseExpenses(ConnectionDatabase):
     def __init__(self):
         super(ConnectionDatabaseExpenses, self).__init__()
         self.table_name = 'Expenses'
-
-    # TODO zmienić id_category INTEGER na category TEXT (testy, metody)
 
     def create_table(self, sql=None):
         if not sql:
             sql = f"CREATE TABLE {self.table_name} " \
                    "(id INTEGER PRIMARY KEY AUTOINCREMENT, " \
                    "expense FLOAT, " \
+                   "category TEXT, " \
                    "matter TEXT, " \
-                   "id_category INTEGER, " \
-                   "date_add DATETIME, " \
-                   "FOREIGN KEY (id_category) REFERENCES CategoriesOfExpenses(id))"
+                   "date_add DATETIME); "
         self.cursor.execute(sql)
         self.connection.commit()
 
-    def insert_expense(self, expense, matter=None, category_id=None, date_add=None) -> int:
-        self.cursor.execute(f"INSERT INTO {self.table_name} (expense, matter, id_category, date_add) "
-                            f"VALUES ('{expense}', '{matter}', '{category_id}', '{date_add}');")
+    def insert_expense(self, expense, category=None, matter=None, date_add=None) -> int:
+        self.cursor.execute(f"INSERT INTO {self.table_name} (expense, category, matter, date_add) "
+                            f"VALUES ('{expense}', '{category}', '{matter}', '{date_add}');")
         self.connection.commit()
         index = self.cursor.execute("SELECT last_insert_rowid();")
         return index.lastrowid
 
     def select_expenses(self) -> dict:
-        """Select all content of all unspecified expenses"""
+        """Select all content of all unspecified expenses.
+        Returns a dictionary.
+        """
         select = self.cursor.execute(
-            f"SELECT id, expense, id_category, date_add FROM {self.table_name};").fetchall()
+            f"SELECT id, expense, category, date_add FROM {self.table_name};").fetchall()
 
         task_dictionary = {}
         for index, expense, category, date_add in select:
@@ -168,11 +128,11 @@ class ConnectionDatabaseExpenses(ConnectionDatabase):
         return self.cursor.execute(
             f"SELECT * FROM {self.table_name} WHERE id={index};").fetchall()
 
-    def update_expense(self, index, expense, matter, category_id, date_add):
+    def update_expense(self, index, expense, category, matter, date_add):
         self.cursor.execute(f"UPDATE {self.table_name} "
                             f"SET expense = '{expense}',"
+                            f"category = '{category}',"
                             f"matter = '{matter}',"
-                            f"id_category = '{category_id}',"
                             f"date_add = '{date_add}' "
                             f"WHERE id={index};")
         self.connection.commit()
