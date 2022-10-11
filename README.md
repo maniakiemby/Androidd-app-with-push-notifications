@@ -9,3 +9,4 @@ python -m pip install kivy[base] kivy_examples
 Require for buildozer:
 * Cython==0.29.10
 * javac [openjdk-8-jdk from apt]
+
