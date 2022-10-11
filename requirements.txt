@@ -20,7 +20,6 @@ ptyprocess==0.7.0
 Pygments==2.7.4
 pypiwin32==223
 python-dateutil==2.8.2
-python-dotenv==0.15.0
 pywin32==300
 requests==2.25.1
 sh==1.14.1

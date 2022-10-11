@@ -1,6 +1,7 @@
+from typing import Union
 from datetime import datetime, date, time, timezone
 from typing import Type
-
+import re
 from dateutil.relativedelta import relativedelta
 import calendar
 
@@ -11,9 +12,14 @@ from kivy.lang import Builder
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
+from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty
+from kivy.core.window import Window
 
 from my_uix import (CalendarButtonDay,
                     TitleCurrentDateWidget,
@@ -27,7 +33,10 @@ from my_uix import (CalendarButtonDay,
                     CancelButtonDate,
                     CancelButtonTime,
                     EnteringTimeBox,
-                    CancelContentChangesButton
+                    CancelContentChangesButton,
+                    IntroductionNewContent,
+                    ConfirmAddingButton,
+                    ErrorMessage,
                     )
 
 # Builder.load_file('pickers.kv')
@@ -42,16 +51,15 @@ def cancel(*args):
 class DatePicker(GridLayout):
     def __init__(self, date_value=date.today(), **kwargs):
         super(DatePicker, self).__init__(**kwargs)
-        # self.rows = 5
         self.selected_date = date_value
 
         self.head = TitleCurrentDateWidget()
         head_date = self.head_date_format()
-        self.head_label = Label(text=head_date, font_size=21)
+        self.head_label = Label(text=head_date, font_size=100)
         self.head.add_widget(self.head_label)
-        self.today = ButtonToday(text='dziś', on_release=self.set_today)
+        self.today = ButtonToday(on_release=self.set_today)
         self.head.add_widget(self.today)
-        self.cancel_button = CancelButtonDate(text="Anuluj", on_release=cancel)
+        self.cancel_button = CancelButtonDate(on_release=cancel)
         self.head.add_widget(self.cancel_button)
         self.add_widget(self.head)
 
@@ -160,16 +168,117 @@ class TimePicker(GridLayout):
         self.add_widget(self.entering)
 
 
-class ContentChanges(GridLayout):
-    def __init__(self, text, **kwargs):
-        super(ContentChanges, self).__init__(**kwargs)
-        self.rows = 2
-        self.text = text
-
-        self.cancel_button = CancelContentChangesButton(on_release=cancel)
+class Content(FloatLayout):
+    def __init__(self, content_text='', behavior='', **kwargs):
+        super(Content, self).__init__(**kwargs)
+        self.text_input = IntroductionNewContent(text=content_text)
+        self.confirm_adding = ConfirmAddingButton()
+        if behavior == 'data change':
+            self.cancel_button = CancelContentChangesButton(on_release=cancel)
+            self.confirm_adding.text = 'Zmień'
+        if behavior == 'new data':
+            self.cancel_button = CancelContentChangesButton()
         self.add_widget(self.cancel_button)
-        self.text_input = TextInput(text=self.text, input_type='text')
         self.add_widget(self.text_input)
+        self.add_widget(self.confirm_adding)
+
+
+def list_of_categories():
+    with open('categories_of_expenses.txt', 'r', encoding='UTF-8') as f:
+        values = f.readlines()
+
+    return [category.strip() for category in values]
+
+
+class NewExpense:
+    def __init__(self):
+        self.index = None
+        self.expense = None
+        self.category_id = None
+        self.matter = None
+        self.date_add = datetime.now().date().isoformat()
+
+
+class ExpenseLayout(GridLayout):
+    def __init__(self, **kwargs):
+        super(ExpenseLayout, self).__init__(**kwargs)
+        # self.cols, self.rows = 1, 1
+        self.date_add = datetime.now().date().isoformat()
+        self.expense_field = self.ids['expense']
+        self.matter_field = self.ids['matter']
+        self.button_date_add = self.ids['date_add']
+        self.button_date_add.text = self.date_add
+        self.date_picker = None
+        self.button_cancel = self.ids['cancel']
+        self.button_confirm = self.ids['confirm']
+
+        self.categories = list_of_categories()
+        self.category_selector = self.ids['category']
+        self.dropdown = DropDown()
+        for category in self.categories:
+            self.button_category = Button(text=category, size_hint=(1, None), height=150)
+            self.button_category.bind(on_release=lambda button_category: self.dropdown.select(button_category.text))
+            self.dropdown.add_widget(self.button_category)
+        self.category_selector.bind(on_release=self.dropdown.open)
+        self.category_selector.auto_width = False
+        self.dropdown.bind(on_select=lambda instance, x: setattr(self.category_selector, 'text', x))
+
+    def open_date_picker(self):
+        the_set_date = self.button_date_add.text
+        if the_set_date:
+            self.date_picker = DatePicker(date.fromisoformat(the_set_date))
+        else:
+            self.date_picker = DatePicker()
+        app = App.get_running_app()
+        app.popup = ModalView(size_hint=(None, None),
+                              size=(Window.width - 25, Window.height / 1.7),
+                              auto_dismiss=True,
+                              on_dismiss=self.grab_date
+                              )
+        app.popup.add_widget(self.date_picker)
+        app.save_data = True
+        app.popup.open()
+
+    def grab_date(self, *args):
+        app = App.get_running_app()
+        if app.save_data:
+            self.date_add = self.date_picker.selected_date.isoformat()
+            self.button_date_add.text = self.date_add
+
+    def data_complete(self) -> bool:
+        if self.category_selector.text == 'wybierz kategorię' or self.expense_field.text == '':
+            self.error_data_not_complete()
+            return False
+        return True
+
+    def amount_money_correctly(self) -> bool:
+        expense = self.expense_field.text.strip()
+        if re.search(',', expense):
+            expense = expense.replace(',', '.')
+        # below I check if the number represents the amount of money
+        search_amount_of_money = re.search('^\d+$|^[0-9]*\.[0-9]{1,2}$', expense)
+        if search_amount_of_money:
+            self.expense_field.text = expense
+            return True
+        else:
+            self.error_amount_money_not_correctly()
+            return False
+
+    def clear_the_fields(self):
+        self.expense_field.text = ''
+        self.dropdown.select('wybierz kategorię')  # this string must too same in .kv file under id: category
+        self.matter_field.text = ''
+        self.button_date_add.text = self.date_add
+    
+    @staticmethod
+    def error_data_not_complete():
+        popup = ErrorMessage()
+        popup.message_content.text = "Wpis nie jest zupełny."
+    
+    @staticmethod
+    def error_amount_money_not_correctly():
+        popup = ErrorMessage()
+        popup.message_content.text = "Podano złą wartość w polu z kwotą wydatków."
 
 
 if __name__ == '__main__':
