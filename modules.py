@@ -1,12 +1,9 @@
-from typing import Union
+from typing import Union, Type
 from datetime import datetime, date, time, timezone
-from typing import Type
 import re
 from dateutil.relativedelta import relativedelta
 import calendar
 
-# from kivy.uix.modalview import ModalView
-# from kivy.uix.textinput import TextInput
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.textinput import TextInput
@@ -202,7 +199,6 @@ class NewExpense:
 class ExpenseLayout(GridLayout):
     def __init__(self, **kwargs):
         super(ExpenseLayout, self).__init__(**kwargs)
-        # self.cols, self.rows = 1, 1
         self.date_add = datetime.now().date().isoformat()
         self.expense_field = self.ids['expense']
         self.matter_field = self.ids['matter']

@@ -4,7 +4,6 @@ from datetime import datetime, date, time
 import pdb
 
 import kivy
-# from kivy.interactive import InteractiveLauncher
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.modalview import ModalView
@@ -13,26 +12,20 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, Screen, ScreenManagerException, \
     FadeTransition, SlideTransition, NoTransition
-from kivy.uix.widget import Widget
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.uix.recycleview import views
-from kivy.uix.popup import Popup
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty
 from kivy.graphics import Color
 
 from database import ConnectionDatabaseTasks, tasks_from_db, sort_tasks_by_date, ConnectionDatabaseExpenses, \
     ConnectionDatabaseExpenseData
-from modules import DatePicker, TimePicker, Content, list_of_categories, ExpenseLayout
+from modules import DatePicker, TimePicker, Content, ExpenseLayout
 from my_uix import (Menu,
                     TasksPageScrollView, WrapButton, ExecuteButtonTasksView,
-                    TaskButtonTasksView,  # TaskGridLayoutTaskBoard,
-                    ValidMessage, ErrorMessage, ValidMessageLongText, ValidMessageYesOrNo, ValidMessageChangeYear,
-                    ButtonNewTask, IntroductionModalView,
-                    CategorySelector, ExpensesPageScrollView, ExpenseButtonExpenseView,
+                    TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewTask,
+                    ExpensesPageScrollView, ExpenseButtonExpenseView,
                     )
 
 kivy.require('2.0.0')

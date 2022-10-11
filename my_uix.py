@@ -42,14 +42,6 @@ class MenuActionBar(ActionBar):
         self.action_view.add_widget(self.action_button)
         self.add_widget(self.action_view)
 
-        # self.text = 'Wybór'
-        # self.mode = 'spinner'
-        # self.action_button_tasks = ActionButton(text='zadania')
-        # self.action_button_notebook = ActionButton(text='zeszyt')
-        #
-        # self.add_widget(self.action_button_tasks)
-        # self.add_widget(self.action_button_notebook)
-
 
 class ValidMessage(ModalView):
     def __init__(self, **kwargs):
@@ -68,15 +60,6 @@ class ValidMessage(ModalView):
         self.layout.add_widget(self.choice_layout)
 
         self.add_widget(self.layout)
-
-
-class IntroductionModalView(ModalView):
-    def __init__(self, **kwargs):
-        super(IntroductionModalView, self).__init__(**kwargs)
-        self.auto_dismiss = False
-        self.background_color = (0, 0, 0, .2)
-        self.pos_hint = {'x': 0, 'y': .3}
-        self.size_hint = (1, .7)
 
 
 class ErrorMessage(ValidMessage):
@@ -98,41 +81,6 @@ class ValidMessageLongText(ValidMessage):
         self.choice_layout.add_widget(confirm_button)
 
 
-class ValidMessageYesOrNo(ValidMessage):
-    def __init__(self, **kwargs):
-        super(ValidMessageYesOrNo, self).__init__(**kwargs)
-        self.auto_dismiss = False
-        self.message_content.text = 'Brak opisu zadania. Czy chcesz usunąć to zadanie ?'
-
-        self.choice_layout.cols = 2
-        self.confirm = Button(text='Tak', size=(0.2, 0.1))
-        self.confirm.bind(on_press=self.dismiss)
-        self.choice_layout.add_widget(self.confirm)
-        self.cancel = Button(text='Nie', size=(0.2, 0.1))
-        self.cancel.bind(on_press=self.dismiss)
-        self.choice_layout.add_widget(self.cancel)
-
-
-class ValidMessageChangeYear(ValidMessageYesOrNo):
-    def __init__(self, **kwargs):
-        super(ValidMessageChangeYear, self).__init__(**kwargs)
-        self.message_content.text = "Czas wykonania zadania jest \nwcześniejszy, niż obecna data.\n" \
-                                    "Czy chodziło Ci o wykonanie go w przyszłym roku ?"
-        self.app = App.get_running_app()
-        self.cancel.bind(on_press=self.on_cancel)
-        self.confirm.bind(on_press=self.on_confirm)
-
-    def on_confirm(self, *args):
-        app = App.get_running_app()
-        app.save_data = True
-        self.dismiss()
-
-    def on_cancel(self, *args):
-        app = App.get_running_app()
-        app.save_date = False
-        self.dismiss()
-
-
 # TODO stworzyć klasę bazową i dwie klasy dziedziczące, oddzielnie do dodawania nowego zadania
 #  i do edycji zadania
 #  klasa dodająca nowe zadanie ma zajmować się separacją daty i czasu we właściwy sposób.
@@ -149,22 +97,6 @@ class IntroductionNewContent(TextInput):
         self.pos_hint = {'x': .05, 'y': .55}
         self.size_hint = (0.9, 0.2)
         self.hint_text = '00:00 1sty | 1sty 1:08'
-
-    # def on_text(self, instance, value):
-    #     if len(value) >= 300:
-    #         self.background_color = [1, .141, .2, 1]
-    #     super(IntroductionNewContent, self).on_text(instance, value)
-
-    """def insert_text(self, substring, from_undo=True):
-        if len(self.text) >= 300:
-            self.background_color = [1, .141, .2, 1]
-        super(IntroductionNewContent, self).insert_text(substring, from_undo)
-
-    def do_backspace(self, from_undo=True, mode='bkspc'):
-        if len(self.text) <= 301:
-            self.background_color = [1, 1, 1, .8]
-        super(IntroductionNewContent, self).do_backspace(from_undo, mode)
-    """
 
 
 class TasksPageScrollView(ScrollView):
@@ -365,14 +297,5 @@ class ExpensesPageScrollView(ScrollView):
         self.size = (Window.width, Window.height)
 
 
-class CategorySelector:
-    def __init__(self, **kwargs):
-        super(CategorySelector, self).__init__(**kwargs)
-        # https://kivy.org/doc/stable/api-kivy.uix.dropdown.html
-        self.dropdown = DropDown()
-
-
 class ExpenseButtonExpenseView(WrapButton):
     pass
-    # def __init__(self, **kwargs):
-    #     super(ExpenseButtonExpenseView, self).__init__(**kwargs)

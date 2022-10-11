@@ -27,7 +27,7 @@ export PATH=$PATH:~/.local/bin/
 # now we need initialize buildozer and edit the buildozer.spec
 * buildozer init
 # then compilation - will take a long time
-buildozer -v android debug
+* buildozer -v android debug
 # then connect the phone to the usb port and turn on developer mode
 * buildozer -v android deploy run logcat
 # I am adding to the end and can see application errors on phone
