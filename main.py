@@ -495,8 +495,6 @@ class MainWindow(Screen):
                     "Possibly incorrect data was entered."
                     popup = ErrorMessage()
                     popup.message_content.text = "Wprowadź poprawną godzinę\nw formacie 24h:60m"
-                    # popup.choice_layout.add_widget(Button(text='Ok', size=(0.2, 0.1), on_press=popup.dismiss))
-                    # popup.open()
 
     def grab_content(self):
         for arg in self.walk():
