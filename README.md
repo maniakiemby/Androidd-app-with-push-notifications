@@ -10,10 +10,15 @@ second step, create environment:
 
 # Require for buildozer:
 link for the Buildozer documentation: https://buildozer.readthedocs.io/en/latest/
+
 Linux (the virtual image may not work) or OSX to be able to compile for Android
+
 I am using Linux Mint 21 Xfce which it requires to compile on Android:
-Cython==0.29.10  # below how to install
+
+Cython==0.29.10
+
 javac [openjdk-8-jdk from apt]
+
 * pip install --user --upgrade Cython==0.29.19 virtualenv  # the --user should be removed if you do this in a venv
 * sudo apt update
 * sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev
@@ -27,6 +32,7 @@ add the following line at the end of your ~/.bashrc file
 
 # then run compile process
 * buildozer -v android debug
+
 compilation will take a long time
 
 # then connect the phone with turn on developer mode to the usb port, then:
