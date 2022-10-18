@@ -251,7 +251,7 @@ class ExpenseLayout(GridLayout):
         expense = self.expense_field.text.strip()
         if re.search(',', expense):
             expense = expense.replace(',', '.')
-        # below I check if the number represents the amount of money
+        # below I check whether the number represents the amount of money
         search_amount_of_money = re.search('^\d+$|^[0-9]*\.[0-9]{1,2}$', expense)
         if search_amount_of_money:
             self.expense_field.text = expense

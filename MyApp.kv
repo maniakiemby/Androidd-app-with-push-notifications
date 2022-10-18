@@ -1,3 +1,9 @@
+<MenuActionPrevious>:
+    background_color: (97/255, 97/255, 107/255, 1)
+    app_icon: 'data/cancel-male.png'
+    on_release:
+        root.close_app()
+
 <MenuActionBar>:
     pos_hint: {'x': 1, 'top': 1}
     size_hint: (1, .1)
@@ -21,14 +27,51 @@
     padding: 25
     spacing: 15
 
+<ValidMessage>:
+    size_hint: (.9, .5)
+    auto_dismiss: True
+
+    BoxLayout:
+        id: layout
+        orientation: 'vertical'
+        padding: 30
+        spacing: 80
+
+        Label:
+            id: message_content
+            font_size: sp(18)
+            size_hint_y: None
+            text_size: self.width, None
+            height: self.texture_size[1]
+
+        BoxLayout:
+            id: choice_layout
+            orientation: 'horizontal'
+            padding: 15
+            spacing: 20
+
+<ButtonWindowErrorMessageYes>:
+    text: 'Tak'
+    font_size: sp(22)
+    background_color: (255/255, 102/255, 102/255, 1)
+
+<ButtonWindowErrorMessageNo>:
+    text: 'Anuluj'
+    font_size: sp(22)
+    background_color: (153/255, 255/255, 153/255, 1)
+
+<ConfirmationButtonWindowErrorMessage>:
+    text: 'ok'
+    font_size: sp(22)
+    size_hint: (.1, None)
+
 <TasksPageScrollView>:
     background_normal: ''
-    size_hint: (1, .9)
-    # pos_hint: {'x': .05}
+    size_hint: (1, .8)
+    pos_hint: {'y': .1}
     # center_x: .5
     do_scroll_x: False
     do_scroll_y: True
-
 
 <TaskBoard>:
     cols: 2
@@ -38,7 +81,12 @@
     # padding: (5, 0)
 
 
-<ButtonNewTask>:
+<ButtonNewItem>:
+    pos_hint: {'x': .7, 'top': .09}
+    size_hint: (.15, .08)
+    background_color: (0, 0, 0, 0)
+    background_normal: ''
+
     Image:
         id: new_task_image
         source: 'data/add.png'
@@ -89,7 +137,7 @@
         size_hint_x: .3
         allow_stretch: True
 
-#<ButtonNewTask@Button>
+#<ButtonNewItem@Button>
  #   background_color: (0,0,0,.3)
   #  background_normal: ''
    # canvas.before:
@@ -196,7 +244,8 @@
     do_scroll_x: False
     do_scroll_y: True
     background_normal: ''
-    size_hint: (1, .9)
+    size_hint: (1, .8)
+    pos_hint: {'y': .1}
 
 <ExpensesNotebook>:
     cols: 1
@@ -212,6 +261,7 @@
 
         CostNumberInput:
             id: expense
+            multiline: False
             # text_size: root.width * .7, root.height * .2
 
         Button:
@@ -221,6 +271,7 @@
 
         TextInput:
             id: matter
+            multiline: False
 
         Button:
             id: date_add
@@ -229,12 +280,13 @@
 
     Button:
         id: cancel
-        size_hint: .15, .1
+        background_color: (0,0,0,0)
+        size_hint: .15, .15
         pos_hint: {"x": 0, "top": 1}
 
         Image:
             id: cancel_image
-            source: 'data/cancel.png'
+            source: 'data/back_to.png'
             center_x: self.parent.center_x - .2
             center_y: self.parent.center_y
             size_hint_x: .3
@@ -242,11 +294,10 @@
 
     Button:
         id: confirm
-        # background_color: (0,0,0,0)
+        background_color: (0,0,0,0)
         size_hint: (.15, .1)
         pos_hint: {"x": .7, "top": .15}
-        # on_release:
-            # root.insert_expense()
+
         Image:
             id: execute_image
             source: 'data/done.png'
@@ -256,6 +307,21 @@
             allow_stretch: True
 
 <AddExpensePage>:
+
+<ExpenseWindow>:
+    Button:
+        id: remove
+        background_color: (0,0,0,0)
+        size_hint: (.15, .1)
+        pos_hint: {"x": .14, "top": .17}
+
+        Image:
+            id: execute_image
+            source: 'data/remove.png'
+            center_x: self.parent.center_x - .2
+            center_y: self.parent.center_y
+            size_hint_x: .3
+            allow_stretch: True
 
 <ExpenseButtonExpenseView>:
     # background_normal: ''

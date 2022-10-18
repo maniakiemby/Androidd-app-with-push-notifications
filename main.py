@@ -6,6 +6,7 @@ import pdb
 import kivy
 from kivy.app import App
 from kivy.lang import Builder
+from kivy.metrics import dp, sp
 from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -24,7 +25,7 @@ from database import ConnectionDatabaseTasks, tasks_from_db, sort_tasks_by_date,
 from modules import DatePicker, TimePicker, Content, ExpenseLayout
 from my_uix import (Menu,
                     TasksPageScrollView, WrapButton, ExecuteButtonTasksView,
-                    TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewTask,
+                    TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewItem,
                     ExpensesPageScrollView, ExpenseButtonExpenseView,
                     )
 
@@ -113,8 +114,6 @@ class TaskBoard(GridLayout):
         instance_id = instance[0].index
         MainWindow.current_id = instance_id
         back(direction='left', current='task_window')
-        # sm.transition.direction = 'left'
-        # sm.current = 'task_window'
 
     def execute(self, *instance):
         instance_id = instance[0].index
@@ -129,11 +128,11 @@ class ToDoTasksPage(Screen):
         self.menu = Menu(current='tasks')
         self.menu.menu_action_bar.action_button.bind(on_press=self.switch_to_expenses_page)
 
-        self.button_adding_new_task = ButtonNewTask()
+        self.button_adding_new_task = ButtonNewItem()
         self.button_adding_new_task.bind(on_press=self.switch_to_add_task_screen)
 
         self.scroll_view = TasksPageScrollView()
-        self.scroll_view.button_new_task_obj = self.button_adding_new_task
+        # self.scroll_view.button_new_task_obj = self.button_adding_new_task
         self.task_board = TaskBoard()
         self.scroll_view.add_widget(self.task_board)
 
@@ -240,10 +239,6 @@ class AddTaskPage(Screen):
                 elif self.new_task.task_date_of_performance:
                     if self.new_task.task_date_of_performance < self.new_task.task_date_add:
                         self.change_year()
-                        # popup = ValidMessageChangeYear()
-                        # popup.confirm.bind(on_press=self.change_year)
-                        # popup.cancel.bind(on_press=self.insert)
-                        # popup.open()
                 self.insert()
 
     def change_year(self, *args):
@@ -534,6 +529,12 @@ class ExpensesNotebook(GridLayout):
                     expense = str(expense).replace('.', ',')
                     row.text = "{:<11} {}".format(expense, category)
 
+    def remove_row(self, index):
+        for row in self.walk():
+            if isinstance(row, ExpenseButtonExpenseView):
+                if row.index == index:
+                    self.remove_widget(row)
+
 
 class ExpensesPage(Screen):
     def __init__(self, **kwargs):
@@ -547,7 +548,7 @@ class ExpensesPage(Screen):
         self.scroll_view.add_widget(self.expenses)
         self.add_widget(self.scroll_view)
 
-        self.button_new_expense = ButtonNewTask()
+        self.button_new_expense = ButtonNewItem()
         self.button_new_expense.bind(on_press=self.switch_to_add_expense_page)
         self.add_widget(self.button_new_expense)
 
@@ -593,12 +594,18 @@ class Expense:
                           matter=self.matter,
                           date_add=self.date_add)
 
+    def remove_expense(self):
+        db = ConnectionDatabaseExpenses()
+        db.delete_expense(self.current_id)
+
 
 class AddExpensePage(Screen, ExpenseLayout):
     def __init__(self, **kwargs):
         super(AddExpensePage, self).__init__(**kwargs)
         self.button_cancel.bind(on_release=self.back)
         self.button_confirm.bind(on_release=self.insert_expense)
+        self.matter_field.bind(on_text_validate=self.insert_expense)
+        self.expense_field.bind(on_text_validate=self.insert_expense)
 
     def insert_expense(self, *args):
         if self.data_complete():
@@ -629,6 +636,8 @@ class ExpenseWindow(Screen, ExpenseLayout):
         super(ExpenseWindow, self).__init__(**kwargs)
         self.button_cancel.bind(on_release=self.back)
         self.button_confirm.bind(on_release=self.confirm)
+        self.button_remove_expense = self.ids['remove']
+        self.button_remove_expense.bind(on_release=self.remove)
         self.expense = Expense()
 
     def receive_content(self, index_expense):
@@ -656,6 +665,12 @@ class ExpenseWindow(Screen, ExpenseLayout):
         self.expense.matter = self.matter_field.text
         self.expense.date_add = self.button_date_add.text
 
+    def remove(self, *args):
+        self.expense.remove_expense()
+        gui = sm.get_screen('expenses').expenses
+        gui.remove_row(self.expense.current_id)
+        self.back()
+
     def back(self, *args):
         back(direction='right', current='expenses')
         self.clear_the_fields()
@@ -681,11 +696,13 @@ Start.done()
 
 class MyApp(App):
     def build(self):
-        # Window.clearcolor = (.376, .376, .376, 0)
-        Window.clearcolor = (.85, .9, .85, .3)
+        Window.clearcolor = (151/255, 152/255, 164/255)
+        # Window.clearcolor = (.85, .9, .85, .3)
         return sm
 
 
 if __name__ == '__main__':
     MyApp().run()
     # do wyłączania aplikacji App.get_running_app().stop()
+    # https://stackoverflow.com/questions/62498639/python-kivy-how-to-optimize-screen-resolution-for-all-devices
+    # python main.py --size=1440x2960 --dpi=529

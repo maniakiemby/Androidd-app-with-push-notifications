@@ -23,7 +23,17 @@ class Menu(BoxLayout):
     def __init__(self, current: str, **kwargs):
         super(Menu, self).__init__(**kwargs)
         self.menu_action_bar = MenuActionBar(current=current)
+        self.menu_action_bar.background_color = (97/255, 97/255, 107/255, 1)
         self.add_widget(self.menu_action_bar)
+
+
+class MenuActionPrevious(ActionPrevious):
+    def __init__(self, **kwargs):
+        super(MenuActionPrevious, self).__init__(**kwargs)
+
+    @staticmethod
+    def close_app(*args):
+        ClosingAppMessage()
 
 
 class MenuActionBar(ActionBar):
@@ -32,10 +42,10 @@ class MenuActionBar(ActionBar):
         self.action_view = ActionView(use_separator=True)
         self.current = current  # tasks or notebook
         if self.current == 'tasks':
-            self.action_previous = ActionPrevious(title='Moje zadania', with_previous=False)
+            self.action_previous = MenuActionPrevious(title='Moje zadania', with_previous=False)
             self.action_button = ActionButton(text='Zeszyt')
         else:
-            self.action_previous = ActionPrevious(title='Zeszyt z wydatkami', with_previous=False)
+            self.action_previous = MenuActionPrevious(title='Zeszyt z wydatkami', with_previous=False)
             self.action_button = ActionButton(text='Moje zadania')
 
         self.action_view.add_widget(self.action_previous)
@@ -46,29 +56,50 @@ class MenuActionBar(ActionBar):
 class ValidMessage(ModalView):
     def __init__(self, **kwargs):
         super(ValidMessage, self).__init__(**kwargs)
-        self.size_hint = (None, None)
-        self.size = (400, 210)
-        self.auto_dismiss = True
+        self.layout = self.ids['layout']
+        self.message_content = self.ids['message_content']
+        self.choice_layout = self.ids['choice_layout']
 
-        self.layout = BoxLayout(orientation='vertical')
-        self.message_content = Label()
-        self.layout.add_widget(self.message_content)
 
-        self.choice_layout = GridLayout(
-            cols=1, padding=22, spacing=5
-        )
-        self.layout.add_widget(self.choice_layout)
+class ConfirmationButtonWindowErrorMessage(Button):
+    def __init__(self, **kwargs):
+        super(ConfirmationButtonWindowErrorMessage, self).__init__(**kwargs)
+        self.text = 'OK'
 
-        self.add_widget(self.layout)
+
+class ClosingAppMessage(ValidMessage):
+    def __init__(self, **kwargs):
+        super(ClosingAppMessage, self).__init__(**kwargs)
+        self.message_content.text = 'Czy chcesz wyjść z aplikacji ?'
+        self.choice_layout.cols = 2
+        self.choice_layout.add_widget(
+            ButtonWindowErrorMessageYes(on_press=self.yes))
+        self.choice_layout.add_widget(
+            ButtonWindowErrorMessageNo(on_press=self.dismiss))
+
+        self.open()
+
+    @staticmethod
+    def yes(*args):
+        Window.close()
+
+
+class ButtonWindowErrorMessageYes(Button):
+    def __init__(self, **kwargs):
+        super(ButtonWindowErrorMessageYes, self).__init__(**kwargs)
+
+
+class ButtonWindowErrorMessageNo(Button):
+    def __init__(self, **kwargs):
+        super(ButtonWindowErrorMessageNo, self).__init__(**kwargs)
 
 
 class ErrorMessage(ValidMessage):
     def __init__(self, **kwargs):
         super(ErrorMessage, self).__init__(**kwargs)
-        self.size = (400, 225)
         self.message_content.text = 'Wykonywana operacja nie powiodła się.'
         self.choice_layout.add_widget(
-            Button(text='Ok', size=(0.2, 1), on_press=self.dismiss)
+            ConfirmationButtonWindowErrorMessage(on_press=self.dismiss)
         )
         self.open()
 
@@ -103,18 +134,18 @@ class TasksPageScrollView(ScrollView):
     def __init__(self, **kwargs):
         super(TasksPageScrollView, self).__init__(**kwargs)
         self.size = (Window.width, Window.height)
-        self.button_new_task_obj = None
-        self.direction_value = None
-
-    def on_touch_down(self, touch):
-        if self.direction_value is not None:
-            if touch.pos[1] > self.direction_value:
-                self.button_new_task_obj.show()
-            elif touch.pos[1] < self.direction_value:
-                self.button_new_task_obj.hide()
-        self.direction_value = touch.pos[1]
-
-        super(TasksPageScrollView, self).on_touch_down(touch)
+    #     self.button_new_task_obj = None
+    #     self.direction_value = None
+    #
+    # def on_touch_down(self, touch):
+    #     if self.direction_value is not None:
+    #         if touch.pos[1] > self.direction_value:
+    #             self.button_new_task_obj.show()
+    #         elif touch.pos[1] < self.direction_value:
+    #             self.button_new_task_obj.hide()
+    #     self.direction_value = touch.pos[1]
+    #
+    #     super(TasksPageScrollView, self).on_touch_down(touch)
 
 
 class WrapButton(Button):
@@ -253,19 +284,15 @@ class CancelContentChangesButton(Button):
         self.background_normal = ''
 
 
-class ButtonNewTask(Button):
+class ButtonNewItem(Button):
     def __init__(self, **kwargs):
-        super(ButtonNewTask, self).__init__(**kwargs)
-        self.pos_hint = {'x': .65, 'top': .2}
-        self.size_hint = (.15, .08)
-        self.background_color = (0, 0, 0, 0)
-        self.background_normal = ''
+        super(ButtonNewItem, self).__init__(**kwargs)
 
-    def hide(self):
-        self.pos_hint = {'x': .65, 'top': .9}
-
-    def show(self):
-        self.pos_hint = {'x': .65, 'top': .2}
+    # def hide(self):
+    #     self.pos_hint = {'x': .65, 'top': .9}
+    #
+    # def show(self):
+    #     self.pos_hint = {'x': .65, 'top': .2}
 
 
 class ConfirmAddingButton(Button):
