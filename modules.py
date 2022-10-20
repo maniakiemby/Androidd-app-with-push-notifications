@@ -265,16 +265,21 @@ class ExpenseLayout(GridLayout):
         self.dropdown.select('wybierz kategorię')  # this string must too same in .kv file under id: category
         self.matter_field.text = ''
         self.button_date_add.text = self.date_add
-    
+
     @staticmethod
     def error_data_not_complete():
         popup = ErrorMessage()
         popup.message_content.text = "Wpis nie jest zupełny."
-    
+
     @staticmethod
     def error_amount_money_not_correctly():
         popup = ErrorMessage()
         popup.message_content.text = "Podano złą wartość w polu z kwotą wydatków."
+
+
+class RestoreDeletedEntry(GridLayout):
+    def __init__(self, **kwargs):
+        super(RestoreDeletedEntry, self).__init__(**kwargs)
 
 
 if __name__ == '__main__':

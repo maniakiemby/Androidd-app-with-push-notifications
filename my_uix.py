@@ -134,18 +134,6 @@ class TasksPageScrollView(ScrollView):
     def __init__(self, **kwargs):
         super(TasksPageScrollView, self).__init__(**kwargs)
         self.size = (Window.width, Window.height)
-    #     self.button_new_task_obj = None
-    #     self.direction_value = None
-    #
-    # def on_touch_down(self, touch):
-    #     if self.direction_value is not None:
-    #         if touch.pos[1] > self.direction_value:
-    #             self.button_new_task_obj.show()
-    #         elif touch.pos[1] < self.direction_value:
-    #             self.button_new_task_obj.hide()
-    #     self.direction_value = touch.pos[1]
-    #
-    #     super(TasksPageScrollView, self).on_touch_down(touch)
 
 
 class WrapButton(Button):

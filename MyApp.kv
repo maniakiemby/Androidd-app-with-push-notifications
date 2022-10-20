@@ -236,6 +236,20 @@
                 #on_release:
                  #   root.change_task_content()
 
+<RestoreDeleteEntry>:
+    size_hint: 1, .1
+    pos: 0, .1
+    background_color: 1, 0, 0, 1
+
+    Label:
+        text: "Czy cofnąć usuwanie ?"
+        background_color: 1, 0, 0, 1
+        size_hint: 1, .1
+        pos: 0, .1
+
+    Button:
+        text: "Cofnij"
+
 
 #  Below for application notebook
 
@@ -313,7 +327,7 @@
         id: remove
         background_color: (0,0,0,0)
         size_hint: (.15, .1)
-        pos_hint: {"x": .14, "top": .17}
+        pos_hint: {"x": .2, "top": .15}
 
         Image:
             id: execute_image

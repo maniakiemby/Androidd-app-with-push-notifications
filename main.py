@@ -22,7 +22,7 @@ from kivy.graphics import Color
 
 from database import ConnectionDatabaseTasks, tasks_from_db, sort_tasks_by_date, ConnectionDatabaseExpenses, \
     ConnectionDatabaseExpenseData
-from modules import DatePicker, TimePicker, Content, ExpenseLayout
+from modules import DatePicker, TimePicker, Content, ExpenseLayout, RestoreDeletedEntry
 from my_uix import (Menu,
                     TasksPageScrollView, WrapButton, ExecuteButtonTasksView,
                     TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewItem,
@@ -76,7 +76,7 @@ class TaskBoard(GridLayout):
     def __init__(self, **kwargs):
         super(TaskBoard, self).__init__(**kwargs)
         self.bind(minimum_height=self.setter('height'))
-
+        self.restoring_task = None
         self.all_tasks = sort_tasks_by_date(tasks_from_db())
 
         for index, task in self.all_tasks.items():
@@ -117,9 +117,36 @@ class TaskBoard(GridLayout):
 
     def execute(self, *instance):
         instance_id = instance[0].index
+        self.restoring_task = Task(instance_id)
+        self.restoring_task.receiving_content()
         db = ConnectionDatabaseTasks()
         db.mark_done(instance_id)
+
+        # TODO Dodać komunikat o możliwości cofnięcia usunięcia
+        #  zacząłem z ModalView ale to chyba nie jest dobry pomysł, może być problem z tym,
+        #  że to komunikat i nie można korzystać z interfejsu póki on nie zniknie i przyciemnia ekran.
+        
+        # app = App.get_running_app()
+        # app.popup = ModalView(size_hint=(1, .1),
+        #                       pos_hint={'top': .9},
+        #                       auto_dismiss=False,
+        #                       on_dismiss=self.restore)
+        # app.add_widget(RestoreDeletedEntry())
+        # app.save_data = True
+        # app.popup.open()
+
         self.del_task_from_gui(instance_id)
+
+    def restore(self, *args):
+        self.add_new_task_to_gui(index=self.restoring_task.task_id,
+                                 essence=self.restoring_task.content,
+                                 date_of_performance=self.restoring_task.date_of_performance)
+        db = ConnectionDatabaseTasks()
+        index = db.insert_task(task=self.restoring_task.content,
+                               date_add=self.restoring_task.date_add,
+                               date_of_performance=self.restoring_task.date_of_performance)
+        if not index:
+            raise ConnectionError('Error with restoring task.')
 
 
 class ToDoTasksPage(Screen):
@@ -132,7 +159,6 @@ class ToDoTasksPage(Screen):
         self.button_adding_new_task.bind(on_press=self.switch_to_add_task_screen)
 
         self.scroll_view = TasksPageScrollView()
-        # self.scroll_view.button_new_task_obj = self.button_adding_new_task
         self.task_board = TaskBoard()
         self.scroll_view.add_widget(self.task_board)
 
@@ -696,7 +722,7 @@ Start.done()
 
 class MyApp(App):
     def build(self):
-        Window.clearcolor = (151/255, 152/255, 164/255)
+        Window.clearcolor = (151 / 255, 152 / 255, 164 / 255)
         # Window.clearcolor = (.85, .9, .85, .3)
         return sm
 
