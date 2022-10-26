@@ -294,6 +294,28 @@ class ConfirmAddingButton(Button):
         self.text = 'dodaj'
 
 
+class RestoreInscription(WrapButton):
+    def __init__(self, **kwargs):
+        super(RestoreInscription, self).__init__(**kwargs)
+
+
+class RestoreButton(WrapButton):
+    def __int__(self, **kwargs):
+        super(RestoreButton, self).__int__(**kwargs)
+
+
+class RestoreDeletedEntry(FloatLayout):
+    def __init__(self, index, **kwargs):
+        super(RestoreDeletedEntry, self).__init__(**kwargs)
+        self.restore_inscription = RestoreInscription(index=index, info='content')
+        self.restore_button = RestoreButton(index=index, info='execute')
+
+        # self.restore_inscription.add_widget(self.restore_button)
+
+        self.add_widget(self.restore_inscription)
+        # self.add_widget(self.restore_button)
+
+
 #  below for application notebook
 
 

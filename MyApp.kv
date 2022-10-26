@@ -176,21 +176,21 @@
         FloatLayout:
             pos_hint: {"x": 0, "top": 1}
 
-            Button:
+            #Button:
                 # text: 'V'
                 # id: execute_task
-                background_color: (0,0,0,0)
-                size_hint: (.2, .2)
-                pos_hint: {"x": .01, "top": .8}
-                on_release:
-                    root.execute()
-                Image:
-                    id: execute_image
-                    source: 'data/check-circle-150.png'
-                    center_x: self.parent.center_x - .2
-                    center_y: self.parent.center_y
-                    size_hint_x: .3
-                    allow_stretch: True
+             #   background_color: (0,0,0,0)
+              #  size_hint: (.2, .2)
+               # pos_hint: {"x": .01, "top": .8}
+                #on_release:
+                 #   root.execute()
+                #Image:
+                 #   id: execute_image
+                  #  source: 'data/check-circle-150.png'
+                   # center_x: self.parent.center_x - .2
+                    #center_y: self.parent.center_y
+                    #size_hint_x: .3
+                    #allow_stretch: True
 
             TextInput:
                 background_color: (0,0,0,.1)
@@ -199,8 +199,8 @@
                 color: 'black'
                 text_size: root.width * .7, root.height * .2
                 # size: self.texture_size
-                size_hint: (.78, .4)
-                pos_hint: {'x': .21, 'top': .9}
+                size_hint: (.8, .6)
+                pos_hint: {'x': .1, 'top': 1.05}
 
 
         GridLayout:
@@ -236,19 +236,22 @@
                 #on_release:
                  #   root.change_task_content()
 
-<RestoreDeleteEntry>:
-    size_hint: 1, .1
-    pos: 0, .1
+<RestoreInscription>:
+    text: "Naciśnij aby przywrócić usuwany element"
+    font_size: 75
+    size_hint: (1, None)
+    padding: (10, 50)
+
+<RestoreButton>:
+    # text: "Cofnij"
+    size_hint: (None, None)
+    size: (0, 0)
+
+<RestoreDeletedEntry>:
+    cols: 1
+    size_hint: (None, None)
+    pos_hint: {'right': .5}
     background_color: 1, 0, 0, 1
-
-    Label:
-        text: "Czy cofnąć usuwanie ?"
-        background_color: 1, 0, 0, 1
-        size_hint: 1, .1
-        pos: 0, .1
-
-    Button:
-        text: "Cofnij"
 
 
 #  Below for application notebook

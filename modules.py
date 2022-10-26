@@ -277,11 +277,6 @@ class ExpenseLayout(GridLayout):
         popup.message_content.text = "Podano złą wartość w polu z kwotą wydatków."
 
 
-class RestoreDeletedEntry(GridLayout):
-    def __init__(self, **kwargs):
-        super(RestoreDeletedEntry, self).__init__(**kwargs)
-
-
 if __name__ == '__main__':
     class MyApp(App):
         def build(self):

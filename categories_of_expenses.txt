@@ -1,14 +1,13 @@
 paliwo
 inne wydatki na samochód
-opis, jakie wydatki na samochód
-mieszkanie / odstępne
-mieszkanie / czynsz
-abonament / telefon i internet
-inne abonamenty
+mieszkanie - odstępne
+mieszkanie - czynsz - rachunki
+abonament (telefon, internet, inne)
+hobby - rekreacja - wycieczki
 podstawowe wydatki
-niepodstawowe wydatki
-większe wydatki
-opis, jakie wydatki
+nieregularne wydatki
+większe wydatki lub zachcianki
 odłożone pieniądze
 Natalia dała na mieszkanie
 odsetki kart kredytowcyh i inne opłaty za prowadzenie rachunków
+wypłata (dochód)

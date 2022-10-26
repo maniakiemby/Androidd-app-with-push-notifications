@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime, date, time
 import pdb
+import time as tm
 
 import kivy
 from kivy.app import App
@@ -22,11 +23,12 @@ from kivy.graphics import Color
 
 from database import ConnectionDatabaseTasks, tasks_from_db, sort_tasks_by_date, ConnectionDatabaseExpenses, \
     ConnectionDatabaseExpenseData
-from modules import DatePicker, TimePicker, Content, ExpenseLayout, RestoreDeletedEntry
+from modules import DatePicker, TimePicker, Content, ExpenseLayout
 from my_uix import (Menu,
                     TasksPageScrollView, WrapButton, ExecuteButtonTasksView,
                     TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewItem,
                     ExpensesPageScrollView, ExpenseButtonExpenseView,
+                    RestoreInscription, RestoreButton, RestoreDeletedEntry
                     )
 
 kivy.require('2.0.0')
@@ -76,17 +78,25 @@ class TaskBoard(GridLayout):
     def __init__(self, **kwargs):
         super(TaskBoard, self).__init__(**kwargs)
         self.bind(minimum_height=self.setter('height'))
-        self.restoring_task = None
+        self.restoring_task = {}
         self.all_tasks = sort_tasks_by_date(tasks_from_db())
+        self.display_gui()
 
+    def display_gui(self):
         for index, task in self.all_tasks.items():
-            # self.layout = TaskGridLayoutTaskBoard(date_of_performance=task[1])
-            self.button_execute = ExecuteButtonTasksView(on_release=self.execute, index=index, info='execute')
-            self.add_widget(self.button_execute)
+            self.add_task_to_gui(index=index, task=task)
 
-            self.button_named = TaskButtonTasksView(text=task[0], on_release=self.doorway, index=index, info='content')
-            self.add_widget(self.button_named)
-            # self.add_widget(self.layout)
+    def add_task_to_gui(self, index, task):
+        if isinstance(task[0], RestoreDeletedEntry):
+            button_execute = BoxLayout(size_hint=(None, None), size=(0, 0))
+            button_named = RestoreInscription(on_release=self.restore, index=index, info='content')
+        else:
+            button_execute = ExecuteButtonTasksView(
+                on_release=self.complete, index=index, info='execute')
+            button_named = TaskButtonTasksView(
+                text=task[0], on_release=self.doorway, index=index, info='content')
+        self.add_widget(button_execute)
+        self.add_widget(button_named)
 
     def add_new_task_to_gui(self, index, essence, date_of_performance):
         self.all_tasks[index] = [essence, date_of_performance]
@@ -95,58 +105,53 @@ class TaskBoard(GridLayout):
     def sort_tasks(self):
         self.clear_widgets()
         self.all_tasks = sort_tasks_by_date(self.all_tasks)
-        for index, task in self.all_tasks.items():
-            self.button_execute = ExecuteButtonTasksView(on_release=self.execute, index=index, info='execute')
-            self.add_widget(self.button_execute)
+        self.display_gui()
 
-            self.button_named = TaskButtonTasksView(text=task[0], on_release=self.doorway, index=index, info='content')
-            self.add_widget(self.button_named)
-
-    def del_task_from_gui(self, index):
+    def find_layout_task_in_grid(self, index: int) -> tuple:
+        result = []
         for obj in self.walk():
             if isinstance(obj, WrapButton):
                 if obj.index == index:
-                    self.remove_widget(obj)
+                    result.append(obj)
+
+        return tuple(result)
+
+    def del_task_from_gui(self, index: int):
+        task_layout = self.find_layout_task_in_grid(index=index)
+        for obj in task_layout:
+            self.remove_widget(obj)
         self.all_tasks.pop(index)
 
-    @staticmethod
-    def doorway(*instance):
+    def doorway(self, *instance):
         instance_id = instance[0].index
         MainWindow.current_id = instance_id
         back(direction='left', current='task_window')
+        if len(self.restoring_task) > 0:
+            self.mark_done()
 
-    def execute(self, *instance):
+    def complete(self, *instance):
         instance_id = instance[0].index
-        self.restoring_task = Task(instance_id)
-        self.restoring_task.receiving_content()
-        db = ConnectionDatabaseTasks()
-        db.mark_done(instance_id)
+        self.display_recovery_message(index=instance_id)
 
-        # TODO Dodać komunikat o możliwości cofnięcia usunięcia
-        #  zacząłem z ModalView ale to chyba nie jest dobry pomysł, może być problem z tym,
-        #  że to komunikat i nie można korzystać z interfejsu póki on nie zniknie i przyciemnia ekran.
-        
-        # app = App.get_running_app()
-        # app.popup = ModalView(size_hint=(1, .1),
-        #                       pos_hint={'top': .9},
-        #                       auto_dismiss=False,
-        #                       on_dismiss=self.restore)
-        # app.add_widget(RestoreDeletedEntry())
-        # app.save_data = True
-        # app.popup.open()
-
-        self.del_task_from_gui(instance_id)
+    def display_recovery_message(self, index):
+        restore_statement = RestoreDeletedEntry(index=index)
+        self.restoring_task[index] = self.all_tasks[index]
+        self.all_tasks[index] = [restore_statement, None]
+        self.sort_tasks()
 
     def restore(self, *args):
-        self.add_new_task_to_gui(index=self.restoring_task.task_id,
-                                 essence=self.restoring_task.content,
-                                 date_of_performance=self.restoring_task.date_of_performance)
+        index = list(self.restoring_task.keys())[0]
+        self.all_tasks[index] = self.restoring_task[index]
+        self.restoring_task.pop(index)
+        self.sort_tasks()
+
+    def mark_done(self):
+        indexes = list(self.restoring_task.keys())
         db = ConnectionDatabaseTasks()
-        index = db.insert_task(task=self.restoring_task.content,
-                               date_add=self.restoring_task.date_add,
-                               date_of_performance=self.restoring_task.date_of_performance)
-        if not index:
-            raise ConnectionError('Error with restoring task.')
+        for index in indexes:
+            db.mark_done(index)
+            self.del_task_from_gui(index)
+            self.restoring_task.pop(index)
 
 
 class ToDoTasksPage(Screen):
@@ -523,13 +528,19 @@ class ExpensesNotebook(GridLayout):
     def __init__(self, **kwargs):
         super(ExpensesNotebook, self).__init__(**kwargs)
         self.bind(minimum_height=self.setter('height'))
-
+        self.restoring_expenses = {}
         db = ConnectionDatabaseExpenses()
         self.all_expenses = db.select_expenses()
+        self.display_gui()
 
+    def display_gui(self):
         for key in self.all_expenses.keys():
-            expense = self.all_expenses[key]  # list of expense items from the dictionary
-            self.add_expense_to_gui(expense_id=key, expense=expense[0], category=expense[1])
+            if key in list(self.restoring_expenses.keys()):
+                expense = RestoreInscription(on_release=self.restore, index=key, info='content')
+                self.add_widget(expense)
+            else:
+                expense = self.all_expenses[key]  # list of expense items from the dictionary
+                self.add_expense_to_gui(expense_id=key, expense=expense[0], category=expense[1])
 
     def add_expense_to_gui(self, expense_id, expense, category):
         expense = str(expense).replace('.', ',')
@@ -541,12 +552,17 @@ class ExpensesNotebook(GridLayout):
         )
         self.add_widget(wrap_button)
 
-    @staticmethod
-    def doorway(*args):
-        index = args[0].index  # index of our expense
+    def refresh_gui(self):
+        self.clear_widgets()
+        # TODO mogę jeszcze dodać sortowanie po dacie dodania, o ile nie są w ten sposób dodawane zadania.
+        self.display_gui()
+
+    def doorway(self, *args):
+        index = args[0].index  # index of current expense
         window = sm.get_screen(name='expense_window')
         window.receive_content(index_expense=index)
         back(direction='left', current='expense_window')
+        self.make_the_removal()
 
     def update_row(self, index: int, expense: str, category: str):
         for row in self.walk():
@@ -555,11 +571,29 @@ class ExpensesNotebook(GridLayout):
                     expense = str(expense).replace('.', ',')
                     row.text = "{:<11} {}".format(expense, category)
 
-    def remove_row(self, index):
-        for row in self.walk():
-            if isinstance(row, ExpenseButtonExpenseView):
-                if row.index == index:
-                    self.remove_widget(row)
+    def remove_expense(self, index):
+        self.restoring_expenses[index] = self.all_expenses[index]
+        self.display_recovery_message(index=index)
+
+    def display_recovery_message(self, index):
+        # restore_statement = RestoreDeletedEntry(index=index)
+        # self.all_expenses[index] = [restore_statement, '', None]
+        self.refresh_gui()  # TODO mogę jeszcze zamiast odświeżania wszystkiego poprostu zamienić elementy na statement
+
+    def restore(self, *args):
+        index = args[0].index
+        self.restoring_expenses.pop(index)
+        self.refresh_gui()
+
+    def make_the_removal(self):
+        indexes = list(self.restoring_expenses.keys())
+        if len(indexes) > 0:
+            for row in self.walk():
+                if isinstance(row, ExpenseButtonExpenseView):
+                    if row.index in indexes:
+                        self.remove_widget(row)
+            self.restoring_expenses = {}
+        # TODO dodać usuwanie wydatku z bazy danych - obecnie wali błędem
 
 
 class ExpensesPage(Screen):
@@ -578,13 +612,13 @@ class ExpensesPage(Screen):
         self.button_new_expense.bind(on_press=self.switch_to_add_expense_page)
         self.add_widget(self.button_new_expense)
 
-    @staticmethod
-    def switch_to_todo_tasks_page(*args):
+    def switch_to_todo_tasks_page(self, *args):
         back(direction='down', current='tasks')
+        self.expenses.make_the_removal()
 
-    @staticmethod
-    def switch_to_add_expense_page(*args):
+    def switch_to_add_expense_page(self, *args):
         back(transition='no_transition', current='add_expense')
+        self.expenses.make_the_removal()
 
     # TODO link do XAMPP czyli narzędzia budującego lokalny host na komputerze.
     #  https://stackoverflow.com/questions/42704846/running-python-scripts-with-xampp
@@ -694,7 +728,7 @@ class ExpenseWindow(Screen, ExpenseLayout):
     def remove(self, *args):
         self.expense.remove_expense()
         gui = sm.get_screen('expenses').expenses
-        gui.remove_row(self.expense.current_id)
+        gui.remove_expense(self.expense.current_id)
         self.back()
 
     def back(self, *args):
