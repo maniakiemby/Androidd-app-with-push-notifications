@@ -17,6 +17,9 @@ from kivy.uix.image import Image
 from kivy.graphics import BorderImage
 from kivy.uix.actionbar import ActionBar, ActionView, ActionGroup, ActionButton, ActionPrevious
 from kivy.uix.dropdown import DropDown
+from kivy.uix.codeinput import CodeInput
+from kivy.extras.highlight import KivyLexer
+from kivy.uix.vkeyboard import VKeyboard
 
 
 class Menu(BoxLayout):
@@ -112,22 +115,33 @@ class ValidMessageLongText(ValidMessage):
         self.choice_layout.add_widget(confirm_button)
 
 
-# TODO stworzyć klasę bazową i dwie klasy dziedziczące, oddzielnie do dodawania nowego zadania
-#  i do edycji zadania
-#  klasa dodająca nowe zadanie ma zajmować się separacją daty i czasu we właściwy sposób.
-#  Do tego właściwie podkreślać za długi tekst (obecnie tekst jest skracany o datę i czas,
-#  a podkreślenie wynikające ze zbyt długiego tekstu nie bierze tego pod uwagę).
+class ContentInput(CodeInput):
+    def __init__(self):
+        super(ContentInput, self).__init__()
+        # self.lexer = KivyLexer()
+        self.cursor_color = [0, 1, 0, 1]
 
-class IntroductionNewContent(TextInput):
-    def __init__(self, **kwargs):
-        super(IntroductionNewContent, self).__init__(**kwargs)
-        self.input_type = 'text'
-        self.multiline = False
-        self.font_size = 65
+    def insert_text(self, substring, from_undo=False):
+        # regex_date = re.compile('(\s|^)\d{1,2}\s*\w{3}(\s|$)|(\s|^)\w{3}\s*\d{1,2}(\s|$)|$')
+        # regex_time = re.compile('(\s|^)\d{2}:\d{2}(\s|$)|(\s|^)\d:\d{2}(\s|$)|$')
+        #
+        # search_date = regex_date.search(substring).group()
+        # search_time = regex_time.search(substring).group()
+        # text = substring
+        # if search_date:
+        #     text = text.replace(search_date, ' ')
+        # if search_time:
+        #     text = text.replace(search_time, ' ')
 
-        self.pos_hint = {'x': .05, 'y': .55}
-        self.size_hint = (0.9, 0.2)
-        self.hint_text = '00:00 1sty | 1sty 1:08'
+        if len(substring) > 350:
+            substring = substring[:350]
+            self.cursor_color = [1, 0, 0, 1]
+        else:
+            self.cursor_color = [0, 1, 0, 1]
+        # else:
+        #     s = ''.join([re.sub(self.pat, '', s) for s in substring])
+
+        return super(ContentInput, self).insert_text(substring, from_undo=from_undo)
 
 
 class TasksPageScrollView(ScrollView):
@@ -263,35 +277,19 @@ class TimeInput(NumberInput):
         self.center_x = 200
 
 
-class CancelContentChangesButton(Button):
+class ButtonBack(Button):
     def __init__(self, **kwargs):
-        super(CancelContentChangesButton, self).__init__(**kwargs)
-        self.pos_hint = {'x': 0, 'top': 1}
-        self.size_hint = (.13, .12)
-        self.background_color = (0, 0, 0, 0)
-        self.background_normal = ''
+        super(ButtonBack, self).__init__(**kwargs)
 
 
 class ButtonNewItem(Button):
     def __init__(self, **kwargs):
         super(ButtonNewItem, self).__init__(**kwargs)
 
-    # def hide(self):
-    #     self.pos_hint = {'x': .65, 'top': .9}
-    #
-    # def show(self):
-    #     self.pos_hint = {'x': .65, 'top': .2}
 
-
-class ConfirmAddingButton(Button):
+class ButtonConfirm(Button):
     def __init__(self, **kwargs):
-        super(ConfirmAddingButton, self).__init__(**kwargs)
-        self.pos_hint = {'x': .6, 'top': .3}
-        self.size_hint = (.3, .15)
-        self.background_color = (0, 0, 0, .5)
-        self.background_normal = ''
-        self.font_size = 65
-        self.text = 'dodaj'
+        super(ButtonConfirm, self).__init__(**kwargs)
 
 
 class RestoreInscription(WrapButton):
@@ -321,6 +319,7 @@ class RestoreDeletedEntry(FloatLayout):
 
 class CostNumberInput(TextInput):
     pat = re.compile('[0-9]*[,.]*[0-9]{2}')
+    VKeyboard.layout = 'numeric'
 
     def insert_text(self, substring, from_undo=False):
         value = ''.join([re.sub(self.pat, '', value) for value in substring])

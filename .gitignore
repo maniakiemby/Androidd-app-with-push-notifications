@@ -17,3 +17,4 @@ exclusions/
 data/icons8.com.txt
 bin/
 .buildozer/
+data/download/

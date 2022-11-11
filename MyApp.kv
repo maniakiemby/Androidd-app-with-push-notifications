@@ -89,7 +89,7 @@
 
     Image:
         id: new_task_image
-        source: 'data/add.png'
+        source: 'data/add-256.png'
         center_x: self.parent.center_x - .2
         center_y: self.parent.center_y
         size_hint_x: .3
@@ -105,7 +105,7 @@
     padding: (0, 50)
     Image:
         id: confirm_image
-        source: 'data/check-circle-100.png'
+        source: 'data/check-circle-150.png'
         center_x: self.parent.center_x - .2
         center_y: self.parent.center_y
         size_hint_x: .3
@@ -118,20 +118,27 @@
     size_hint: (1, None)
     padding: (10, 50)
 
-<AddTaskPage>:
-    background_color: (0,0,0,.4)
-    GridLayout:
-        id: layout
-        cols: 1
-        rows: 1
-        pos_hint: {'x': 0, 'y': .3}
-        size_hint: (1, .7)
+<ButtonBack>:
+    background_color: (0,0,0,.1)
+    size_hint: .15, .15
+    pos_hint: {"x": 0, "top": 1}
 
-
-<CancelContentChangesButton>:
     Image:
         id: cancel_image
-        source: 'data/cancel.png'
+        source: 'data/cancel-256.png'
+        center_x: self.parent.center_x - .2
+        center_y: self.parent.center_y
+        size_hint_x: .3
+        allow_stretch: True
+
+<ButtonConfirm>:
+    background_color: (0,0,0,.1)
+    size_hint: .15, .15
+    pos_hint: {"x": .7, "top": .56}
+
+    Image:
+        id: execute_image
+        source: 'data/ok-256.png'
         center_x: self.parent.center_x - .2
         center_y: self.parent.center_y
         size_hint_x: .3
@@ -148,60 +155,61 @@
         #    pos: self.pos
          #   radius: [50]
 
-<MainWindow>:
-    task_content: task_content
-    task_date_of_performance: task_date
-    task_time_of_performance: task_time
+<InteriorView>:
+    FloatLayout:
+        ButtonBack:
+            id: button_back
 
+        ButtonConfirm:
+            id: button_confirm
+
+<TaskLayout>:
     GridLayout:
         rows: 3
+        size_hint: .8, .42
+        pos_hint: {"x": .1, "top": 1}
 
-        FloatLayout:
-            size_hint: (.18, .2)
+        GridLayout:  # był FloatLayout
+            cols: 2
+            size_hint: (.18, .4)
 
             Button:
+                id: change_background_color
                 background_color: (0,0,0,0)
-                size_hint: .18, .7
-                pos_hint: {"x": 0, "top": 1}
-                on_release:
-                    root.button_back()
+                size_hint: .15, .8
+                pos_hint: {"x": .62, "top": .9}
+
                 Image:
-                    id: button_back_image
-                    source: 'data/done.png'
+                    id: 'change_background_color'
+                    source: 'data/background-color-256.png'
                     center_x: self.parent.center_x - .2
                     center_y: self.parent.center_y
-                    size_hint_x: .3
+                    # size_hint_x: .3
                     allow_stretch: True
 
-        FloatLayout:
-            pos_hint: {"x": 0, "top": 1}
+            Button:
+                id: change_font_color
+                background_color: (0,0,0,0)
+                size_hint: .15, .8
+                pos_hint: {"x": .85, "top": .9}
 
-            #Button:
-                # text: 'V'
-                # id: execute_task
-             #   background_color: (0,0,0,0)
-              #  size_hint: (.2, .2)
-               # pos_hint: {"x": .01, "top": .8}
-                #on_release:
-                 #   root.execute()
-                #Image:
-                 #   id: execute_image
-                  #  source: 'data/check-circle-150.png'
-                   # center_x: self.parent.center_x - .2
-                    #center_y: self.parent.center_y
-                    #size_hint_x: .3
-                    #allow_stretch: True
+                Image:
+                    id: 'change_background_color'
+                    source: 'data/font-color-256.png'
+                    center_x: self.parent.center_x - .2
+                    center_y: self.parent.center_y
+                    # size_hint_x: .3
+                    allow_stretch: True
 
-            TextInput:
-                background_color: (0,0,0,.1)
-                id: task_content
-                # background_normal: ''
-                color: 'black'
-                text_size: root.width * .7, root.height * .2
-                # size: self.texture_size
-                size_hint: (.8, .6)
-                pos_hint: {'x': .1, 'top': 1.05}
-
+        ContentInput:
+            id: content_input
+            focus: True
+            background_color: (230/255,230/255,230/255,.2)
+            color: 'black'
+            text_size: root.width * .7, root.height * .2
+            size_hint: (.3, .6)
+            pos_hint: {'x': .1}
+            hint_text: '00:00 1sty | 1sty 1:08'
 
         GridLayout:
             cols: 2
@@ -211,30 +219,29 @@
 
             Button:
                 id: task_date
+                text: 'Dodaj datę'
                 background_normal: ''
                 color: 'grey'
-                pos_hint:{"x": 0.2, "top": 1}
-                size_hint:0.8, 0.2
-                on_release:
-                    root.change_date_of_performance()
+                pos_hint: {"x": 0.2, "top": 1}
+                size_hint: 0.8, 0.2
 
             Button:
                 id: task_time
+                text: 'Dodaj czas'
                 background_normal: ''
                 color: 'grey'
-                pos_hint:{"x": 0.2, "top": 1}
-                size_hint:0.8, 0.2
-                on_release:
-                    root.change_time_of_performance()
+                pos_hint: {"x": 0.2, "top": 1}
+                size_hint: 0.8, 0.2
 
-            #Button:
-             #   text: 'Edytuj zadanie'
-              #  background_normal: ''
-               # color: 'grey'
-                #pos_hint:{"x": 0.2, "top": 1}
-                #size_hint:0.8, 0.2
-                #on_release:
-                 #   root.change_task_content()
+    Button: #ButtonBack:
+        id: button_back
+
+    Button: #ButtonConfirm:
+        id: button_confirm
+
+<AddTaskPage>:
+
+<TaskWindow>:
 
 <RestoreInscription>:
     text: "Naciśnij aby przywrócić usuwany element"
@@ -295,34 +302,6 @@
             on_release:
                 root.open_date_picker()
 
-    Button:
-        id: cancel
-        background_color: (0,0,0,0)
-        size_hint: .15, .15
-        pos_hint: {"x": 0, "top": 1}
-
-        Image:
-            id: cancel_image
-            source: 'data/back_to.png'
-            center_x: self.parent.center_x - .2
-            center_y: self.parent.center_y
-            size_hint_x: .3
-            allow_stretch: True
-
-    Button:
-        id: confirm
-        background_color: (0,0,0,0)
-        size_hint: (.15, .1)
-        pos_hint: {"x": .7, "top": .15}
-
-        Image:
-            id: execute_image
-            source: 'data/done.png'
-            center_x: self.parent.center_x - .2
-            center_y: self.parent.center_y
-            size_hint_x: .3
-            allow_stretch: True
-
 <AddExpensePage>:
 
 <ExpenseWindow>:
@@ -334,7 +313,7 @@
 
         Image:
             id: execute_image
-            source: 'data/remove.png'
+            source: 'data/remove-256.png'
             center_x: self.parent.center_x - .2
             center_y: self.parent.center_y
             size_hint_x: .3

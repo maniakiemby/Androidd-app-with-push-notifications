@@ -3,6 +3,7 @@ from datetime import datetime, date, time, timezone
 import re
 from dateutil.relativedelta import relativedelta
 import calendar
+from abc import ABC, abstractmethod
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -15,6 +16,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
+from kivy.uix.layout import Layout
 from kivy.properties import ObjectProperty
 from kivy.core.window import Window
 
@@ -30,19 +32,138 @@ from my_uix import (CalendarButtonDay,
                     CancelButtonDate,
                     CancelButtonTime,
                     EnteringTimeBox,
-                    CancelContentChangesButton,
-                    IntroductionNewContent,
-                    ConfirmAddingButton,
+                    ButtonBack,
+                    ContentInput,
+                    ButtonConfirm,
                     ErrorMessage,
                     )
 
 # Builder.load_file('pickers.kv')
 
 
+# TODO: Stworzyć jedną klasę abstrakcyjną do widoków tasks i expenses z przyciskami
+#  i z niej dziedziczyć na konkretne widoki
+#  ulepszyć obiektowo również pobieranie daty i czasu wykonania zadania
+
+
 def cancel(*args):
     app = App.get_running_app()
     app.save_data = False
     app.popup.dismiss()
+
+
+class TaskLayout(GridLayout):
+    def __init__(self, **kwargs):
+        super(TaskLayout, self).__init__(**kwargs)
+        self.ids['button_back'].bind(on_release=self.back)
+        self.ids['button_confirm'].bind(on_release=self.confirm)
+
+        self.content_input = self.ids['content_input']
+        self.content_input.bind(on_text_validate=self.confirm)
+
+        self.task_date_of_performance = self.ids['task_date']
+        self.task_date_of_performance.bind(on_release=self.open_date_picker)
+        self.task_time_of_performance = self.ids['task_time']
+        self.task_time_of_performance.bind(one_release=self.open_time_picker())
+
+        self.button_change_background_color = self.ids['change_background_color']
+        self.button_change_background_color.bind(on_release=self.open_color_picker)
+
+        self.button_change_font_color = self.ids['change_font_color']
+        self.button_change_font_color.bind(on_release=self.open_color_picker)
+
+    @staticmethod
+    @abstractmethod
+    def back(*args):
+        pass
+
+    def confirm(self, *args):
+        if self.fields_filled():
+            self.on_confirm()
+
+    def open_date_picker(self, *args):
+        _date = self.task_date_of_performance.text
+        if _date:
+            date_picker = DatePicker(_date)
+        else:
+            date_picker = DatePicker()
+
+        app = App.get_running_app()
+        app.popup = ModalView(size_hint=(None, None),
+                              size=(Window.width - 25, Window.height / 1.7),
+                              auto_dismiss=True,
+                              on_dismiss=self.grab_date
+                              )
+        app.popup.add_widget(date_picker)
+        app.save_data = True
+        app.popup.open()
+
+    def grab_date_from_datepicker(self, *args):
+        app = App.get_running_app()
+        if app.save_data:
+            self.task_date_of_performance.text = app.popup.date_picker.selected_date
+
+    def open_time_picker(self, *args):
+        _time = self.task_time_of_performance.text
+        if _time:
+            time_picker = TimePicker(_time)
+        else:
+            time_picker = TimePicker()
+        app = App.get_running_app()
+        app.popup = ModalView(size_hint=(None, None),
+                              pos_hint={'top': .9},
+                              size=(Window.width / 1.5, Window.height / 3),
+                              auto_dismiss=True,
+                              on_dismiss=self.grab_time
+                              )
+        app.popup.add_widget(time_picker)
+        app.save_data = True
+        app.popup.open()
+
+    def grab_time_from_timepicker(self, *args):
+        app = App.get_running_app()
+        if app.save_data:
+            hour = app.popup.time_picker.entered_hour
+            minute = app.popup.time_picker.entered_minute
+            if not hour or minute:
+                return
+            if len(hour) == 1:
+                hour = '0' + hour
+            if len(minute) == 1:
+                minute = '0' + minute
+            task_time = hour + ':' + minute
+
+            try:
+                task_time = time.fromisoformat(task_time)
+            except ValueError:
+                popup = ErrorMessage()
+                popup.message_content.text = "Wprowadź poprawną godzinę\nw formacie 24h:60m"
+            else:
+                self.task_time_of_performance.text = task_time.isoformat()
+
+    def open_color_picker(self, *args):
+        pass
+
+    def fields_filled(self):
+        essence = self.content_input.text
+        if essence != '':
+            return True
+
+    def clear_the_fields(self):
+        # set default color background
+        # set default color font
+        self.content_input.text = ''
+        self.task_date_of_performance = 'Dodaj datę'
+        self.task_time_of_performance = 'Dodaj czas'
+
+    @abstractmethod
+    def on_confirm(self):
+        pass
+
+
+class SideView(GridLayout):
+    def __init__(self, **kwargs):
+        super(SideView, self).__init__(**kwargs)
 
 
 class DatePicker(GridLayout):
@@ -165,21 +286,6 @@ class TimePicker(GridLayout):
         self.add_widget(self.entering)
 
 
-class Content(FloatLayout):
-    def __init__(self, content_text='', behavior='', **kwargs):
-        super(Content, self).__init__(**kwargs)
-        self.text_input = IntroductionNewContent(text=content_text)
-        self.confirm_adding = ConfirmAddingButton()
-        if behavior == 'data change':
-            self.cancel_button = CancelContentChangesButton(on_release=cancel)
-            self.confirm_adding.text = 'Zmień'
-        if behavior == 'new data':
-            self.cancel_button = CancelContentChangesButton()
-        self.add_widget(self.cancel_button)
-        self.add_widget(self.text_input)
-        self.add_widget(self.confirm_adding)
-
-
 def list_of_categories():
     with open('categories_of_expenses.txt', 'r', encoding='UTF-8') as f:
         values = f.readlines()
@@ -205,8 +311,8 @@ class ExpenseLayout(GridLayout):
         self.button_date_add = self.ids['date_add']
         self.button_date_add.text = self.date_add
         self.date_picker = None
-        self.button_cancel = self.ids['cancel']
-        self.button_confirm = self.ids['confirm']
+        # self.button_cancel = self.ids['cancel']
+        # self.button_confirm = self.ids['confirm']
 
         self.categories = list_of_categories()
         self.category_selector = self.ids['category']

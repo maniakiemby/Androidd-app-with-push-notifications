@@ -3,6 +3,8 @@ import re
 from datetime import datetime, date, time
 import pdb
 import time as tm
+from abc import abstractmethod
+from dataclasses import dataclass
 
 import kivy
 from kivy.app import App
@@ -17,13 +19,14 @@ from kivy.uix.screenmanager import ScreenManager, Screen, ScreenManagerException
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.uix.switch import Switch
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty
 from kivy.graphics import Color
 
 from database import ConnectionDatabaseTasks, tasks_from_db, sort_tasks_by_date, ConnectionDatabaseExpenses, \
     ConnectionDatabaseExpenseData
-from modules import DatePicker, TimePicker, Content, ExpenseLayout
+from modules import DatePicker, TimePicker, ExpenseLayout, TaskLayout
 from my_uix import (Menu,
                     TasksPageScrollView, WrapButton, ExecuteButtonTasksView,
                     TaskButtonTasksView, ValidMessage, ErrorMessage, ValidMessageLongText, ButtonNewItem,
@@ -124,7 +127,8 @@ class TaskBoard(GridLayout):
 
     def doorway(self, *instance):
         instance_id = instance[0].index
-        MainWindow.current_id = instance_id
+        task_window_gui = sm.get_screen('task_window')
+        task_window_gui.receive_content(instance_id)
         back(direction='left', current='task_window')
         if len(self.restoring_task) > 0:
             self.mark_done()
@@ -180,26 +184,51 @@ class ToDoTasksPage(Screen):
         back(direction='up', current='expenses')
 
 
+@dataclass
 class Task:
-    def __init__(self, task_id):
-        self.task_id = task_id
-        self.task_content = None
-        self.task_date_add = None
-        self.task_date_of_performance = None
+    def __init__(self):
+        self.task_id = int
+        self.task_content = str
+        self.task_date_add = datetime.now().isoformat(sep=' ', timespec='seconds')
+        self.task_date_of_performance = str  # DD/MM/RRRR GG:MM
 
         self.task_date = None  # Must be datetime object
         self.task_time = None  # too
 
-    @property
-    def task_content(self):
-        return self.__task_content
+        self.background_color = str
+        self.font_color = str
 
-    @task_content.setter
-    def task_content(self, value):
-        if value is not None:
-            self.__task_content = value.strip()
+    def valid_content(self):
+        len_task_content = len(self.task_content)
+        if len_task_content == 0 or len_task_content > 300:
+            popup = ErrorMessage()
+            popup.message_content.text = "Tekst jest zbyt rozległy, dopuszczalna ilość znaków to 300"
+            return False
+        elif len_task_content < 300:
+            return True
 
-    def receiving_content(self):
+    def merge_date(self):
+        if self.task_time:
+            if self.task_date:
+                self.task_date_of_performance = '{} {}'.format(
+                    self.task_date, self.task_time
+                )
+            else:
+                self.task_date_of_performance = '{} {}'.format(
+                    datetime.now().date().isoformat(), self.task_time
+                )
+        else:
+            self.task_date_of_performance = '{}'.format(
+                self.task_date
+            )
+
+
+@dataclass
+class ExistingTask(Task):
+    # def __init__(self):
+    #     super(ExistingTask, self).__init__()
+
+    def receive_content(self):
         db = ConnectionDatabaseTasks()
         task = db.select_task(self.task_id)
         self.task_content = task[0][1]
@@ -223,324 +252,166 @@ class Task:
             return False
         return True
 
-    def merge_date(self):
-        if self.task_time:
-            if self.task_date:
-                self.task_date_of_performance = '{} {}'.format(
-                    self.task_date, self.task_time
-                )
-            else:
-                self.task_date_of_performance = '{} {}'.format(
-                    datetime.now().date().isoformat(), self.task_time
-                )
-        else:
-            self.task_date_of_performance = '{}'.format(
-                self.task_date
-            )
+
+@dataclass
+class NewTask(Task):
+    def __init__(self, content_input):
+        super().__init__()
+        self.input = content_input
+
+    def parse_input(self):
+        self.input = self.input.strip()
+        self.input = self.input.replace('\'', '\"')
+
+        self.search_date_of_performance_in_input()
+        self.search_time_of_performance_in_input()
+        self.merge_date()
+
+        self.task_content = self.input
+
+    def search_date_of_performance_in_input(self):
+        if not self.task_date:
+            months = {'01': ['sty', 'jan'],
+                      '02': ['lut', 'feb'],
+                      '03': ['mar'],
+                      '04': ['kwi', 'apr'],
+                      '05': ['maj', 'may'],
+                      '06': ['cze', 'jun'],
+                      '07': ['lip', 'jul'],
+                      '08': ['sie', 'aug'],
+                      '09': ['wrz', 'sep'],
+                      '10': ['paz', 'paź', 'oct'],
+                      '11': ['lis', 'nov'],
+                      '12': ['gru', 'dec']}
+
+            regex_search_date = re.compile('(\s|^)\d{1,2}\s*\w{3}(\s|$)|(\s|^)\w{3}\s*\d{1,2}(\s|$)|$')
+            found_date = re.search(regex_search_date, self.input).group()
+            found_date = found_date.lower()
+            if found_date:
+                month = re.sub('\d*\s*', '', found_date)
+                months_names = []
+                [months_names.extend(name) for name in months.values()]
+                if month in months_names:
+                    day = re.search('\d*', found_date).group(0)
+                    if len(day) == 1:
+                        day = '0' + day
+                    month_num = None
+                    for key, values in months.items():
+                        for word in values:
+                            if month == word:
+                                month_num = key
+                                break
+                    _date = '{year}-{month}-{day}'.format(year=date.today().year, month=month_num, day=day)
+                    try:
+                        self.task_date = date.fromisoformat(_date)
+                    except ValueError:
+                        'day is out of range for month'
+                    else:
+                        self.task_content = re.sub(regex_search_date, ' ', self.input)
+                        if self.task_date < date.today():
+                            self.task_date = self.task_date.replace(year=date.today().year + 1)
+
+    def search_time_of_performance_in_input(self):
+        if not self.task_time:
+            regex_search_time = re.compile('(\s|^)\d{2}:\d{2}(\s|$)|(\s|^)\d:\d{2}(\s|$)|$')
+            found_time = re.search(regex_search_time, self.input).group()
+            found_time = found_time.strip()
+            if found_time:
+                if len(found_time) == 4:
+                    found_time = '0' + found_time
+                try:
+                    self.task_time = time.fromisoformat(found_time)
+                except ValueError:
+                    'time is not correctly !'
+                else:
+                    self.task_content = re.sub(regex_search_time, '', self.input)
 
 
-class AddTaskPage(Screen):
+class AddTaskPage(Screen, TaskLayout):
     def __init__(self, **kwargs):
         super(AddTaskPage, self).__init__(**kwargs)
-        self.content = Content(behavior='new data')
-        self.content.text_input.is_focusable = True
-        self.content.text_input.bind(on_text_validate=self.grab_content_of_new_task)  # event 'on_enter'
-        self.content.confirm_adding.bind(on_press=self.grab_content_of_new_task)
-        self.content.cancel_button.bind(on_press=self.cancel)
-        self.ids['layout'].add_widget(self.content)
-        self.new_task = None
+        self.task = None
 
-    def grab_content_of_new_task(self, *args):
-        _input_content = None
-        _input_content = self.content.text_input.text
+    def on_confirm(self):
+        content_input = self.content_input.text
+        self.task = NewTask(content_input)
+        self.task.task_date = self.task_date_of_performance.text
+        self.task.task_time = self.task_time_of_performance.text
+        # self.task.background_color = self.button_change_background_color.text
+        # self.task.font_color = self.button_change_font_color.text
 
-        if _input_content:
-            self.new_task = NewTask(_input_content)
-            # pdb.set_trace()
-            if self.new_task.task_content == 'long':
-                popup = ValidMessageLongText()
-                popup.open()
+        self.task.parse_input()
 
-            elif self.new_task.task_content and self.new_task.task_content != 'long':
-                self.new_task.search_date_of_performance()
-                if self.new_task.task_content == 'long':
-                    popup = ValidMessageLongText()
-                    popup.open()
-                    return
-                elif self.new_task.task_date_of_performance:
-                    if self.new_task.task_date_of_performance < self.new_task.task_date_add:
-                        self.change_year()
-                self.insert()
-
-    def change_year(self, *args):
-        self.new_task.task_date_of_performance = datetime.fromisoformat(self.new_task.task_date_of_performance)
-        self.new_task.task_date_of_performance = self.new_task.task_date_of_performance.replace(
-            year=date.today().year + 1
-        ).isoformat(sep=' ', timespec='minutes')
+        if self.task.valid_content():
+            index = self.insert()
+            self.clear_the_fields()
+            page = sm.get_screen('tasks')
+            page.task_board.add_new_task_to_gui(
+                index, self.new_task.task_content, self.new_task.task_date_of_performance
+            )
 
     def insert(self, *args):
         db = ConnectionDatabaseTasks()
         index = db.insert_task(task=self.new_task.task_content,
                                date_add=self.new_task.task_date_add,
                                date_of_performance=self.new_task.task_date_of_performance)
-        self.content.text_input.text = ''
-        # self.content.text_input.focus = True
-        page = sm.get_screen('tasks')
-        page.task_board.add_new_task_to_gui(index, self.new_task.task_content, self.new_task.task_date_of_performance)
+        return index
 
     @staticmethod
-    def cancel(*args):
-        back(transition='no_transition', current='tasks')
-
-
-class NewTask:
-    def __init__(self, all_content):
-        self.table_name = 'Tasks'
-        self.input_task = all_content
-        self.task_date_add = '{} {}'.format(datetime.now().date().isoformat(),
-                                            datetime.now().time().isoformat(timespec='seconds'))
-        self.task_date_of_performance = None
-        # self.search_date_of_performance()
-        self.task_content = self.input_task
-
-    def search_date_of_performance(self):
-        months = {'01': ['sty', 'jan'],
-                  '02': ['lut', 'feb'],
-                  '03': ['mar'],
-                  '04': ['kwi', 'apr'],
-                  '05': ['maj', 'may'],
-                  '06': ['cze', 'jun'],
-                  '07': ['lip', 'jul'],
-                  '08': ['sie', 'aug'],
-                  '09': ['wrz', 'sep'],
-                  '10': ['paz', 'paź', 'oct'],
-                  '11': ['lis', 'nov'],
-                  '12': ['gru', 'dec']}
-
-        regex_search_date = '(\s|^)\d{1,2}\s*\w{3}(\s|$)|(\s|^)\w{3}\s*\d{1,2}(\s|$)'
-        search_date = re.search(regex_search_date, self.input_task)
-        if search_date:
-            found_date = search_date.group(0).strip().lower()
-            self.input_task = re.sub(regex_search_date, ' ', self.input_task)
-
-            month = re.sub('\d*\s*', '', found_date)
-            months_names = []
-            [months_names.extend(name) for name in months.values()]
-            if month in months_names:
-                day = re.search('\d*', found_date).group(0)
-                if len(day) == 1:
-                    day = '0' + day
-                month_num = None
-                for key, values in months.items():
-                    for word in values:
-                        if month == word:
-                            month_num = key
-                            break
-                found_date = '{year}-{month}-{day}'.format(year=date.today().year, month=month_num, day=day)
-                try:
-                    date.fromisoformat(found_date)
-                except ValueError:
-                    'day is out of range for month'
-                    found_date = None
-            else:
-                search_date = None
-
-        regex_search_time = '(\s|^)\d{2}:\d{2}(\s|$)|(\s|^)\d:\d{2}(\s|$)'
-        search_time = re.search(regex_search_time, self.input_task)
-        found_time = None
-        if search_time:
-            found_time = search_time.group(0).strip()
-            if len(found_time) == 4:
-                found_time = '0' + found_time
-            try:
-                try_datetime = '{} {}'.format(datetime.now().date().isoformat(), found_time)
-                datetime.fromisoformat(try_datetime)
-            except ValueError:
-                'time is not correctly !'
-                found_time = None
-            else:
-                self.input_task = re.sub(regex_search_time, '', self.input_task)
-
-        if search_date:
-            if found_time:
-                self.task_date_of_performance = '{date} {time}'.format(date=found_date, time=found_time)
-            else:
-                self.task_date_of_performance = found_date
-        else:
-            if found_time:
-                self.task_date_of_performance = '{date} {time}'.format(
-                    date=date.today().isoformat(), time=found_time
-                )
-
-        if len(self.input_task) > 300:
-            self.task_content = 'long'
-        else:
-            self.task_content = self.input_task
-
-        # print(self.task_content)
-        # print(self.input_task)
-
-    @property
-    def task_content(self):
-        return self.__task_content
-
-    @task_content.setter
-    def task_content(self, value):
-        value = value.strip()
-        if len(value) == 0:
-            self.__task_content = False
-        elif len(value) > 330:
-            self.__task_content = 'long'
-        else:
-            self.__task_content = value
-
-
-class MainWindow(Screen):
-    current_id = None
-    task_content = ObjectProperty(None)
-    task_date_of_performance = ObjectProperty(None)
-    task_time_of_performance = ObjectProperty(None)
-    task = Task(current_id)
-
-    def button_back(self):
-        self.grab_content()
-        result = self.task.update_data()
-        gui = sm.get_screen('tasks').task_board
-        gui.all_tasks[self.task.task_id] = [self.task.task_content, self.task.task_date_of_performance]
-        gui.sort_tasks()
+    def back(*args):
         back(direction='right', current='tasks')
-        if not result:
-            ErrorMessage()
 
-    def on_enter(self, *args):
-        self.task = Task(self.current_id)
-        self.task.receiving_content()
-        self.task_content.text = self.task.task_content
+
+class TaskWindow(Screen, TaskLayout):
+    def __init__(self, **kwargs):
+        super(TaskWindow, self).__init__(**kwargs)
+        self.task = None
+
+    def receive_content(self, index):
+        self.task = ExistingTask()
+        self.task.task_id = index
+        self.task.receive_content()
+        self.layout.content_input.text = self.task.task_content
         if self.task.task_date:
-            self.task_date_of_performance.text = self.task.task_date.isoformat()
-        else:
-            self.task_date_of_performance.text = 'Dodaj datę'
+            self.layout.task_date_of_performance.text = self.task.task_date.isoformat()
         if self.task.task_time:
-            self.task_time_of_performance.text = self.task.task_time.isoformat(timespec='minutes')
-        else:
-            self.task_time_of_performance.text = 'Dodaj czas'
+            self.layout.task_time_of_performance.text = self.task.task_time.isoformat(timespec='minutes')
+        if self.task.background_color:
+            pass
+        if self.task.font_color:
+            pass
 
-    def execute(self, *args):
-        db = ConnectionDatabaseTasks()
-        db.mark_done(index=self.current_id)
-        sm.get_screen('tasks').task_board.del_task_from_gui(self.task.task_id)
+    def on_confirm(self, *args):
+        if self.fields_filled():
+            if self.task.valid_content():
+                self.task.update_data()
+
+    @staticmethod
+    def back(*args):
         back(direction='right', current='tasks')
 
-    def change_date_of_performance(self, *args):
-        if self.task.task_date is not None:
-            date_picker = DatePicker(self.task.task_date)
-        else:
-            date_picker = DatePicker()
 
-        app = App.get_running_app()
-        app.popup = ModalView(size_hint=(None, None),
-                              size=(Window.width - 25, Window.height / 1.7),
-                              auto_dismiss=True,
-                              on_dismiss=self.grab_date
-                              )
-        app.popup.add_widget(date_picker)
-        app.save_data = True
-        app.popup.open()
-
-    def grab_date(self, *args):
-        app = App.get_running_app()
-        if app.save_data:
-            _input_date = None
-            for arg in args[0].walk(restrict=True):
-                if isinstance(arg, Label):
-                    _input_date = arg.text
-                    break
-
-            _input_date = [num for num in _input_date.split('/')]
-            _input_date.reverse()
-            _input_date = '-'.join(_input_date)
-            _input_date = date.fromisoformat(_input_date)
-
-            self.task.task_date = _input_date
-
-            for gui in self.walk(restrict=True):
-                if isinstance(gui, Button):
-                    if re.search('\d*-\d*-\d*', gui.text) or gui.text.startswith('Dodaj datę'):
-                        gui.text = self.task.task_date.isoformat()
-
-    def change_time_of_performance(self, *args):
-        if self.task.task_time is not None:
-            time_picker = TimePicker(self.task.task_time)
-        else:
-            time_picker = TimePicker()
-        app = App.get_running_app()
-        app.popup = ModalView(size_hint=(None, None),
-                              pos_hint={'top': .9},
-                              size=(Window.width / 1.5, Window.height / 3),
-                              auto_dismiss=True,
-                              on_dismiss=self.grab_time
-                              )
-        app.popup.add_widget(time_picker)
-        app.save_data = True
-        app.popup.open()
-
-    def grab_time(self, *args):
-        app = App.get_running_app()
-        if app.save_data:
-            _input_time = []
-            for arg in args[0].walk(restrict=True):
-                if isinstance(arg, TextInput):
-                    if arg.text == '':
-                        if len(_input_time) > 0:
-                            break
-                        _input_time = None
-                        break
-                    elif len(arg.text) == 2:
-                        _input_time.append(arg.text)
-                    elif len(arg.text) == 1:
-                        _input_time.append('0' + arg.text)
-            if _input_time is not None:
-                if len(_input_time) == 1:
-                    _input_time = '{}:00'.format(_input_time[0])
-                elif len(_input_time) == 2:
-                    _input_time = ':'.join(_input_time)
-                try:
-                    self.task.task_time = time.fromisoformat(_input_time)
-                    for gui in self.walk(restrict=True):
-                        if isinstance(gui, Button):
-                            if re.search('\d{2}:\d{2}', gui.text) or gui.text.startswith('Dodaj czas'):
-                                gui.text = self.task.task_time.isoformat(timespec='minutes')
-                except ValueError:
-                    "Possibly incorrect data was entered."
-                    popup = ErrorMessage()
-                    popup.message_content.text = "Wprowadź poprawną godzinę\nw formacie 24h:60m"
-
-    def grab_content(self):
-        for arg in self.walk():
-            if isinstance(arg, TextInput):
-                updated_task_content = arg.text
-                if updated_task_content != '':
-                    self.task.task_content = updated_task_content
-                break
+# Below for application Notebook
 
 
 class ExpensesNotebook(GridLayout):
     def __init__(self, **kwargs):
         super(ExpensesNotebook, self).__init__(**kwargs)
         self.bind(minimum_height=self.setter('height'))
-        self.restoring_expenses = {}
+        self.index = 0  # It is for self.walk() method
+        self.cached_expenses = {}
         db = ConnectionDatabaseExpenses()
-        self.all_expenses = db.select_expenses()
+        self.all_expenses = db.select_expenses()  # all_expenses[index] = [expense, category, date_add]
         self.display_gui()
 
     def display_gui(self):
         for key in self.all_expenses.keys():
-            if key in list(self.restoring_expenses.keys()):
-                expense = RestoreInscription(on_release=self.restore, index=key, info='content')
-                self.add_widget(expense)
-            else:
-                expense = self.all_expenses[key]  # list of expense items from the dictionary
-                self.add_expense_to_gui(expense_id=key, expense=expense[0], category=expense[1])
+            expense = self.all_expenses[key]  # list of expense items from the dictionary
+            self.add_expense_to_gui(expense_id=key, expense=expense[0], category=expense[1])
+
+    def add_new_expense(self, expense_id, expense, category, date_add):
+        self.all_expenses[expense_id] = [expense, category, date_add]
+        self.add_expense_to_gui(expense_id, expense, category)
 
     def add_expense_to_gui(self, expense_id, expense, category):
         expense = str(expense).replace('.', ',')
@@ -548,7 +419,9 @@ class ExpensesNotebook(GridLayout):
             expense = expense + ',0'
         wrap_button = ExpenseButtonExpenseView(
             text="{:<11} {}".format(expense, category),
-            on_release=self.doorway, index=expense_id, info='content'
+            on_release=self.doorway,
+            index=expense_id,
+            info='content'
         )
         self.add_widget(wrap_button)
 
@@ -559,10 +432,14 @@ class ExpensesNotebook(GridLayout):
 
     def doorway(self, *args):
         index = args[0].index  # index of current expense
-        window = sm.get_screen(name='expense_window')
-        window.receive_content(index_expense=index)
-        back(direction='left', current='expense_window')
-        self.make_the_removal()
+        info = args[0].info
+        if info == 'cache':
+            self.restore(index=index)
+        else:
+            self.make_the_removal()
+            window = sm.get_screen(name='expense_window')
+            window.receive_content(index_expense=index)
+            back(direction='left', current='expense_window')
 
     def update_row(self, index: int, expense: str, category: str):
         for row in self.walk():
@@ -570,30 +447,35 @@ class ExpensesNotebook(GridLayout):
                 if row.index == index:
                     expense = str(expense).replace('.', ',')
                     row.text = "{:<11} {}".format(expense, category)
+                    row.info = 'content'
 
     def remove_expense(self, index):
-        self.restoring_expenses[index] = self.all_expenses[index]
+        expense = self.all_expenses[index]
+        self.cached_expenses[index] = expense
         self.display_recovery_message(index=index)
 
     def display_recovery_message(self, index):
-        # restore_statement = RestoreDeletedEntry(index=index)
-        # self.all_expenses[index] = [restore_statement, '', None]
-        self.refresh_gui()  # TODO mogę jeszcze zamiast odświeżania wszystkiego poprostu zamienić elementy na statement
+        for row in self.walk(restrict=True):
+            if row.index == index:
+                row.text = "{}".format('Naciśnij aby przywrócić usuwany element')
+                row.info = 'cache'
+                return
 
-    def restore(self, *args):
-        index = args[0].index
-        self.restoring_expenses.pop(index)
-        self.refresh_gui()
+    def restore(self, index):
+        expense = self.all_expenses[index]
+        self.update_row(index=index, expense=expense[0], category=expense[1])
+        self.cached_expenses.pop(index)
 
     def make_the_removal(self):
-        indexes = list(self.restoring_expenses.keys())
-        if len(indexes) > 0:
-            for row in self.walk():
-                if isinstance(row, ExpenseButtonExpenseView):
-                    if row.index in indexes:
-                        self.remove_widget(row)
-            self.restoring_expenses = {}
-        # TODO dodać usuwanie wydatku z bazy danych - obecnie wali błędem
+        if len(self.cached_expenses) > 0:
+            indexes = list(self.cached_expenses.keys())
+            for row in self.walk(restrict=True):
+                index = row.index
+                if index in indexes:
+                    self.cached_expenses.pop(index)
+                    self.remove_widget(row)
+                    db = ConnectionDatabaseExpenses()
+                    db.delete_expense(index)
 
 
 class ExpensesPage(Screen):
@@ -640,11 +522,15 @@ class Expense:
     def fetch_data_from_db(self):
         db = ConnectionDatabaseExpenses()
         select = db.select_expense(self.current_id)
-        self.expense = str(select[0][1])
-        self.expense = self.expense.replace('.', ',')
-        self.category = select[0][2]
-        self.matter = select[0][3]
-        self.date_add = select[0][4]
+        try:
+            self.expense = str(select[0][1])
+            self.expense = self.expense.replace('.', ',')
+            self.category = select[0][2]
+            self.matter = select[0][3]
+            self.date_add = select[0][4]
+        except IndexError:
+            "list index out of range"
+            "it looks select -> {}".format(select)
 
     def update_expense_in_db(self):
         db = ConnectionDatabaseExpenses()
@@ -654,16 +540,12 @@ class Expense:
                           matter=self.matter,
                           date_add=self.date_add)
 
-    def remove_expense(self):
-        db = ConnectionDatabaseExpenses()
-        db.delete_expense(self.current_id)
-
 
 class AddExpensePage(Screen, ExpenseLayout):
     def __init__(self, **kwargs):
         super(AddExpensePage, self).__init__(**kwargs)
-        self.button_cancel.bind(on_release=self.back)
-        self.button_confirm.bind(on_release=self.insert_expense)
+        # self.button_cancel.bind(on_release=self.back)
+        # self.button_confirm.bind(on_release=self.insert_expense)
         self.matter_field.bind(on_text_validate=self.insert_expense)
         self.expense_field.bind(on_text_validate=self.insert_expense)
 
@@ -672,9 +554,10 @@ class AddExpensePage(Screen, ExpenseLayout):
             if self.amount_money_correctly():
                 expense_index = self.insert()
                 gui = sm.get_screen('expenses').expenses
-                gui.add_expense_to_gui(expense_index,
-                                       self.expense_field.text,
-                                       self.category_selector.text)
+                gui.add_new_expense(expense_index,
+                                    self.expense_field.text,
+                                    self.category_selector.text,
+                                    self.date_add)
                 self.clear_the_fields()
 
     def insert(self):
@@ -694,8 +577,8 @@ class AddExpensePage(Screen, ExpenseLayout):
 class ExpenseWindow(Screen, ExpenseLayout):
     def __init__(self, **kwargs):
         super(ExpenseWindow, self).__init__(**kwargs)
-        self.button_cancel.bind(on_release=self.back)
-        self.button_confirm.bind(on_release=self.confirm)
+        # self.button_cancel.bind(on_release=self.back)
+        # self.button_confirm.bind(on_release=self.confirm)
         self.button_remove_expense = self.ids['remove']
         self.button_remove_expense.bind(on_release=self.remove)
         self.expense = Expense()
@@ -726,7 +609,6 @@ class ExpenseWindow(Screen, ExpenseLayout):
         self.expense.date_add = self.button_date_add.text
 
     def remove(self, *args):
-        self.expense.remove_expense()
         gui = sm.get_screen('expenses').expenses
         gui.remove_expense(self.expense.current_id)
         self.back()
@@ -745,7 +627,7 @@ Builder.load_file("MyApp.kv")
 sm = WindowManager()
 
 screens = [Start(name='start'), ToDoTasksPage(name='tasks'), AddTaskPage(name='add_task'),
-           MainWindow(name='task_window'), ExpensesPage(name='expenses'), AddExpensePage(name='add_expense'),
+           TaskWindow(name='task_window'), ExpensesPage(name='expenses'), AddExpensePage(name='add_expense'),
            ExpenseWindow(name='expense_window')]
 for screen in screens:
     sm.add_widget(screen)
